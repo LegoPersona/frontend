@@ -1,108 +1,79 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { authApi } from '@/services/authApi'
 
 interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  provider: 'google' | 'facebook' | 'email' | 'guest';
-}
-
-interface LegoPersona {
-  id: string;
-  createdAt: Date;
-  originalImage: string;
-  legoImage: string;
-  partsCount: number;
+  userId: string
+  username: string
 }
 
 interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  personas: LegoPersona[];
-  login: (provider: 'google' | 'facebook' | 'email', credentials?: { email: string; password: string }) => void;
-  continueAsGuest: () => void;
-  logout: () => void;
-  addPersona: (persona: LegoPersona) => void;
+  user: User | null
+  isAuthenticated: boolean
+  isLoading: boolean
+  login: (username: string, password: string) => Promise<void>
+  register: (username: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock personas for demo
-const mockPersonas: LegoPersona[] = [
-  {
-    id: '1',
-    createdAt: new Date('2024-01-15'),
-    originalImage: '/placeholder.svg',
-    legoImage: '/placeholder.svg',
-    partsCount: 24,
-  },
-  {
-    id: '2',
-    createdAt: new Date('2024-02-20'),
-    originalImage: '/placeholder.svg',
-    legoImage: '/placeholder.svg',
-    partsCount: 31,
-  },
-];
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [personas, setPersonas] = useState<LegoPersona[]>([]);
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const login = (provider: 'google' | 'facebook' | 'email', credentials?: { email: string; password: string }) => {
-    // Mock login
-    const mockUser: User = {
-      id: '1',
-      name: provider === 'email' && credentials ? credentials.email.split('@')[0] : 'LEGO Fan',
-      email: provider === 'email' && credentials ? credentials.email : `user@${provider}.com`,
-      provider,
-    };
-    setUser(mockUser);
-    setPersonas(mockPersonas);
-  };
+  useEffect(() => {
+    const accessToken = localStorage.getItem('accessToken')
+    if (!accessToken) {
+      setIsLoading(false)
+      return
+    }
+    authApi
+      .getMe()
+      .then(({ data }) => setUser(data))
+      .catch(() => {
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+      })
+      .finally(() => setIsLoading(false))
+  }, [])
 
-  const continueAsGuest = () => {
-    const guestUser: User = {
-      id: 'guest-' + Date.now(),
-      name: 'Guest Builder',
-      email: '',
-      provider: 'guest',
-    };
-    setUser(guestUser);
-    setPersonas([]);
-  };
+  const login = async (username: string, password: string) => {
+    const { data } = await authApi.login(username, password)
+    localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
+    const me = await authApi.getMe()
+    setUser(me.data)
+  }
 
-  const logout = () => {
-    setUser(null);
-    setPersonas([]);
-  };
+  const register = async (username: string, password: string) => {
+    const { data } = await authApi.register(username, password)
+    localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
+    const me = await authApi.getMe()
+    setUser(me.data)
+  }
 
-  const addPersona = (persona: LegoPersona) => {
-    setPersonas((prev) => [persona, ...prev]);
-  };
+  const logout = async () => {
+    const refreshToken = localStorage.getItem('refreshToken')
+    if (refreshToken) {
+      await authApi.logout(refreshToken).catch(() => {})
+    }
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    setUser(null)
+  }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        personas,
-        login,
-        continueAsGuest,
-        logout,
-        addPersona,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
-};
+  return context
+}

@@ -1,29 +1,24 @@
-import { Link, useLocation } from 'react-router-dom';
-// import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { User, LogOut, Menu, X, Users } from 'lucide-react';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import fullLogo from '@/assets/full-logo.png';
+import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+import { Button } from '@/components/ui/button'
+import { User, LogOut, Menu, X, Users } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import fullLogo from '@/assets/full-logo.png'
 
 const Navbar = () => {
-//   const { user, isAuthenticated, logout } = useAuth();
-  const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth()
+  const location = useLocation()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const isHome = location.pathname === '/' || location.pathname === '/auth';
+  const isHome = location.pathname === '/' || location.pathname === '/auth'
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link to="/" className="flex items-center">
-            <img
-              src={fullLogo}
-              alt="Logo Persona"
-              className="h-14 w-auto object-contain"
-            />
+            <img src={fullLogo} alt="Logo Persona" className="h-14 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -34,27 +29,26 @@ const Navbar = () => {
                 Community
               </Button>
             </Link>
-            {/* {isAuthenticated ? ( */}
+            {isAuthenticated ? (
               <>
                 <Link to="/profile">
                   <Button variant="ghost" className="gap-2">
                     <User className="w-4 h-4" />
-                    {/* {user?.name} */}
-                    {'Ofek Morali'}
+                    {user?.username}
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm" onClick={() => { /* logout(); */ }}>
+                <Button variant="outline" size="sm" onClick={() => logout()}>
                   <LogOut className="w-4 h-4" />
                   Logout
                 </Button>
               </>
-            {/* ) : (
+            ) : (
               !isHome && (
                 <Link to="/auth">
                   <Button variant="default">Login</Button>
                 </Link>
               )
-            )} */}
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -83,31 +77,30 @@ const Navbar = () => {
                   Community
                 </Button>
               </Link>
-              {/* {isAuthenticated ? ( */}
+              {isAuthenticated ? (
                 <>
                   <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-2">
                       <User className="w-4 h-4" />
-                      {/* {user?.name} */}
-                    {'Ofek Morali'}
+                      {user?.username}
                     </Button>
                   </Link>
-                  <Button variant="outline" onClick={() => { /* logout(); */ setMobileMenuOpen(false); }}>
+                  <Button variant="outline" onClick={() => { logout(); setMobileMenuOpen(false) }}>
                     <LogOut className="w-4 h-4" />
                     Logout
                   </Button>
                 </>
-              {/* ) : (
+              ) : (
                 <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="default" className="w-full">Login</Button>
                 </Link>
-              )} */}
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </nav>
-  );
-};
+  )
+}
 
-export default Navbar;
+export default Navbar
