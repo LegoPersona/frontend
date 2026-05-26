@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 
 import {
-  getGenerationResult,
   getGenerationStatus,
   uploadImage,
 } from '@/services/personaApi'
@@ -16,7 +15,7 @@ type PersonaGenerationState = {
   status: PersonaGenerationStatus
   progress: number
   generationId: string | null
-  result: PersonaResult | null
+  result: string | PersonaResult | null
   error: string | null
 }
 
@@ -45,36 +44,58 @@ export function usePersonaGeneration() {
         error: null,
         step: 'loading',
       }))
+      
       const uploadResponse = await uploadImage(file)
+      const currentJobId = uploadResponse.jobId
 
       setState((prev) => ({
         ...prev,
-        generationId: uploadResponse.generationId,
+        generationId: currentJobId,
         status: 'processing',
-        progress: 40,
-      }))
-      const statusResponse = await getGenerationStatus(uploadResponse.generationId)
-
-      setState((prev) => ({
-        ...prev,
-        status: statusResponse.status,
-        progress: Math.max(statusResponse.progress, 65),
+        progress: 30,
       }))
 
-      const resultResponse = await getGenerationResult(uploadResponse.generationId)
+      let isPolling = true;
+      const POLLING_INTERVAL = 3000; 
+      
+      while (isPolling) {
+        await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
+        
+        const statusResponse = await getGenerationStatus(currentJobId);
 
-      setState((prev) => ({
-        ...prev,
-        status: 'completed',
-        progress: 100,
-        result: resultResponse,
-        step: 'result',
-      }))
-    } catch {
+        if (statusResponse.status === 'COMPLETED') {
+          setState((prev) => ({
+            ...prev,
+            status: 'completed',
+            progress: 100,
+            result: statusResponse.resultPersonaId || null,
+            step: 'result',
+          }))
+          isPolling = false; 
+          
+        } else if (statusResponse.status === 'FAILED') {
+          setState((prev) => ({
+            ...prev,
+            status: 'failed',
+            error: statusResponse.errorMessage || 'Persona generation failed on server.',
+            step: 'upload',
+          }))
+          isPolling = false; 
+          
+        } else {
+          setState((prev) => ({
+            ...prev,
+            status: 'processing', 
+            progress: statusResponse.progress ? Math.max(statusResponse.progress, prev.progress) : Math.min(prev.progress + 10, 90),
+          }))
+        }
+      }
+
+    } catch (error) {
       setState((prev) => ({
         ...prev,
         status: 'failed',
-        error: 'Persona generation failed. Please try again.',
+        error: 'Network or upload error occurred. Please try again.',
         step: 'upload',
       }))
     }

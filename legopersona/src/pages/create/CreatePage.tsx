@@ -8,10 +8,10 @@ import ImageUpload from '@/components/persona/ImageUpload';
 import LoadingAnimation from '@/components/persona/LoadingAnimation';
 import ResultsDisplay from '@/components/persona/ResultsDisplay';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import {
   uploadImage,
   getGenerationStatus,
-  getGenerationResult,
 } from "@/services/personaApi";
 
 const steps = [
@@ -27,8 +27,9 @@ const CreatePage = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [resultData, setResultData] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Redirect to auth if not logged in
 //   useEffect(() => {
@@ -36,6 +37,62 @@ const CreatePage = () => {
 //       navigate('/auth');
 //     }
 //   }, [isAuthenticated, navigate]);
+
+  // Polling effect for generation status
+  useEffect(() => {
+    if (!isGenerating || !jobId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const statusResponse = await getGenerationStatus(jobId);
+
+        setProgress(statusResponse.progress || 0);
+
+        if (statusResponse.status === 'PENDING' || statusResponse.status === 'PROCESSING') {
+          // Continue polling
+          return;
+        }
+
+        if (statusResponse.status === 'COMPLETED') {
+          clearInterval(interval);
+          setIsGenerating(false);
+          setCurrentStep(3);
+          
+          // Redirect to profile page with the persona ID
+          if (statusResponse.resultPersonaId) {
+            navigate(`/profile/${statusResponse.resultPersonaId}`);
+          } else {
+            navigate('/profile');
+          }
+        }
+
+        if (statusResponse.status === 'FAILED') {
+          clearInterval(interval);
+          setIsGenerating(false);
+          setGenerationError(statusResponse.errorMessage || 'Generation failed');
+          toast({
+            variant: 'destructive',
+            title: 'Generation Failed',
+            description: statusResponse.errorMessage || 'Something went wrong during persona generation',
+          });
+          setCurrentStep(1);
+        }
+      } catch (err) {
+        console.error('Error checking generation status:', err);
+        clearInterval(interval);
+        setIsGenerating(false);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to check generation status',
+        });
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isGenerating, jobId, navigate]);
 
   const handleImageSelect = (file: File, preview: string) => {
     setSelectedFile(file);
@@ -48,49 +105,38 @@ const CreatePage = () => {
   };
 
   const handleNext = async () => {
-  if (currentStep !== 1 || !selectedFile) return;
+    if (currentStep !== 1 || !selectedFile) return;
 
-  try {
-    setCurrentStep(2);
+    try {
+      setCurrentStep(2);
+      setGenerationError(null);
 
-    // upload image
-    const uploadResponse = await uploadImage(selectedFile);
+      // Upload image and get jobId
+      const uploadResponse = await uploadImage(selectedFile);
+      const generatedJobId = uploadResponse.jobId;
 
-    const generatedJobId = uploadResponse.job_id;
-
-    setJobId(generatedJobId);
-
-    // polling
-    const interval = setInterval(async () => {
-      const status = await getGenerationStatus(generatedJobId);
-
-      setProgress(status.progress || 0);
-
-      if (status.state === "completed") {
-        clearInterval(interval);
-
-        const result = await getGenerationResult(generatedJobId);
-
-        setResultData(result);
-
-        setCurrentStep(3);
-      }
-
-      if (status.state === "failed") {
-        clearInterval(interval);
-        alert("Generation failed");
-      }
-    }, 2000);
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong");
-  }
-};
+      setJobId(generatedJobId);
+      setIsGenerating(true);
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      setCurrentStep(1);
+      setGenerationError('Failed to upload image');
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: 'Failed to upload your image. Please try again.',
+      });
+    }
+  };
 
   const handleCreateAnother = () => {
     setCurrentStep(1);
     setSelectedImage(null);
     setSelectedFile(null);
+    setJobId(null);
+    setIsGenerating(false);
+    setProgress(0);
+    setGenerationError(null);
   };
 
   const handleBack = () => {
@@ -179,7 +225,6 @@ const CreatePage = () => {
               <ResultsDisplay
                 originalImage={selectedImage}
                 onCreateAnother={handleCreateAnother}
-                result={resultData}
               />
             </motion.div>
           )}
