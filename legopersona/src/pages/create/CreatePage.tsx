@@ -10,8 +10,7 @@ import ResultsDisplay from '@/components/persona/ResultsDisplay';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   uploadImage,
-  getGenerationStatus,
-  getGenerationResult,
+  getGenerationStatus
 } from "@/services/personaApi";
 
 const steps = [
@@ -26,7 +25,6 @@ const CreatePage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
   const [resultData, setResultData] = useState<any>(null);
   const [progress, setProgress] = useState(0);
 
@@ -56,29 +54,27 @@ const CreatePage = () => {
     // upload image
     const uploadResponse = await uploadImage(selectedFile);
 
-    const generatedJobId = uploadResponse.job_id;
-
-    setJobId(generatedJobId);
+    const generatedJobId = uploadResponse.jobId;
 
     // polling
     const interval = setInterval(async () => {
       const status = await getGenerationStatus(generatedJobId);
 
-      setProgress(status.progress || 0);
+      setProgress(status.status || 0);
 
-      if (status.state === "completed") {
+      if (status.status === "COMPLETED") {
         clearInterval(interval);
 
-        const result = await getGenerationResult(generatedJobId);
+        const result = status.resultPersonaId
 
         setResultData(result);
 
         setCurrentStep(3);
       }
 
-      if (status.state === "failed") {
+      if (status.status === "FAILED") {
         clearInterval(interval);
-        alert("Generation failed");
+        alert(`Generation failed${status.errorMessage ? `: ${status.errorMessage}` : ""}`);
       }
     }, 2000);
   } catch (err) {
