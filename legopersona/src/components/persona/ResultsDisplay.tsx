@@ -1,12 +1,14 @@
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Download, ShoppingCart, Share2, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getPersona, getPersonaImage } from '@/services/personaApi';
 import legoPersona from '@/assets/lego-persona.jpeg';
 
 interface ResultsDisplayProps {
   originalImage: string;
   onCreateAnother: () => void;
-  result?: unknown;
+  personaId: string;
 }
 
 const mockParts = [
@@ -20,7 +22,16 @@ const mockParts = [
   { id: '3626bp01', name: 'Minifig Hair', color: 'Black', quantity: 1 },
 ];
 
-const ResultsDisplay = ({ originalImage, onCreateAnother, result: _result }: ResultsDisplayProps) => {
+const ResultsDisplay = ({ originalImage, onCreateAnother, personaId }: ResultsDisplayProps) => {
+  const { data: persona } = useQuery({
+    queryKey: ['persona', personaId],
+    queryFn: () => getPersona(personaId),
+  });
+
+  const { data: personaImageSrc = legoPersona } = useQuery({
+    queryKey: ['persona-image', personaId],
+    queryFn: () => getPersonaImage(personaId),
+  });
   const handleDownload = () => {
     // Mock download functionality
     const partsData = mockParts.map(p => `${p.quantity}x ${p.id} - ${p.name} (${p.color})`).join('\n');
@@ -81,7 +92,7 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, result: _result }: Res
         >
           <p className="font-display font-semibold text-center mb-3 text-primary">LEGO Persona</p>
           <img 
-            src={legoPersona} 
+            src={personaImageSrc} 
             alt="LEGO Persona" 
             className="w-full h-64 object-contain rounded-xl bg-white"
           />

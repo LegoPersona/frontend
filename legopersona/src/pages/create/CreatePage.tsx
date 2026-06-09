@@ -25,7 +25,7 @@ const CreatePage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [resultData, setResultData] = useState<any>(null);
+  const [resultPersonaId, setresultPersonaId] = useState<any>(null);
   const [progress, setProgress] = useState(0);
 
   // Redirect to auth if not logged in
@@ -67,7 +67,7 @@ const CreatePage = () => {
 
         const result = status.resultPersonaId
 
-        setResultData(result);
+        setresultPersonaId(result);
 
         setCurrentStep(3);
       }
@@ -175,7 +175,7 @@ const CreatePage = () => {
               <ResultsDisplay
                 originalImage={selectedImage}
                 onCreateAnother={handleCreateAnother}
-                result={resultData}
+                personaId={resultPersonaId}
               />
             </motion.div>
           )}

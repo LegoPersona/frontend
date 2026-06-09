@@ -19,3 +19,10 @@ export interface PersonaResult {
   imageUrl: string
   downloadUrl: string
 }
+
+export interface PersonaDocument {
+  id: string;
+  attributes: Record<string, string>;
+  modules: Record<string, { file_name: string; color: number }>;
+  createdAt: string;
+}

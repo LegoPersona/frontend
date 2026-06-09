@@ -1,4 +1,7 @@
 import api from './api';
+import type { PersonaDocument } from '@/types/persona';
+
+export type { PersonaDocument };
 
 export const uploadImage = async (file: File) => {
   const formData = new FormData();
@@ -17,4 +20,14 @@ export const getGenerationStatus = async (jobId: string) => {
   const response = await api.get(`/personas/tasks/${jobId}/status`);
 
   return response.data;
+};
+
+export const getPersona = async (personaId: string): Promise<PersonaDocument> => {
+  const response = await api.get(`/personas/${personaId}`);
+  return response.data;
+};
+
+export const getPersonaImage = async (personaId: string): Promise<string> => {
+  const response = await api.get(`/personas/${personaId}/image`, { responseType: 'blob' });
+  return URL.createObjectURL(response.data as Blob);
 };
