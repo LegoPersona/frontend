@@ -31,3 +31,11 @@ export const getPersonaImage = async (personaId: string): Promise<string> => {
   const response = await api.get(`/personas/${personaId}/image`, { responseType: 'blob' });
   return URL.createObjectURL(response.data as Blob);
 };
+
+export const getPersonaInstructions = async (personaId: string): Promise<string> => {
+  const response = await api.get(`/personas/${personaId}/instructions`, {
+    responseType: 'blob',
+    timeout: 300000, // 5 minutes — PDF generation can take a while
+  });
+  return URL.createObjectURL(response.data as Blob);
+};

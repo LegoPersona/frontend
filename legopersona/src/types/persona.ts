@@ -20,9 +20,18 @@ export interface PersonaResult {
   downloadUrl: string
 }
 
+export interface PersonaPart {
+  'Part Name': string;
+  'Color': string;
+  'Quantity': string;
+  'Part ID': string;
+  'Color Code': string;
+}
+
 export interface PersonaDocument {
   id: string;
   attributes: Record<string, string>;
   modules: Record<string, { file_name: string; color: number }>;
+  partsJson?: PersonaPart[];
   createdAt: string;
 }
