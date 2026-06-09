@@ -27,6 +27,7 @@ const CreatePage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [resultPersonaId, setresultPersonaId] = useState<any>(null);
   const [progress, setProgress] = useState(0);
+  const [actionDescription, setActionDescription] = useState<string | undefined>(undefined);
 
   // Redirect to auth if not logged in
 //   useEffect(() => {
@@ -60,7 +61,8 @@ const CreatePage = () => {
     const interval = setInterval(async () => {
       const status = await getGenerationStatus(generatedJobId);
 
-      setProgress(status.status || 0);
+      setProgress(status.percentCompleteEstimate ?? 0);
+      setActionDescription(status.actionDescription ?? undefined);
 
       if (status.status === "COMPLETED") {
         clearInterval(interval);
@@ -160,7 +162,7 @@ const CreatePage = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-card rounded-2xl shadow-card p-8"
             >
-              <LoadingAnimation progress={progress} />
+              <LoadingAnimation progress={progress} message={actionDescription} />
             </motion.div>
           )}
 

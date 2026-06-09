@@ -3,9 +3,10 @@ import LegoBrick from './LegoBrick';
 
 interface LoadingAnimationProps {
   progress?: number;
+  message?: string;
 }
 
-const LoadingAnimation = ({ progress: _progress }: LoadingAnimationProps) => {
+const LoadingAnimation = ({ progress = 0, message }: LoadingAnimationProps) => {
   const bricks = [
     { color: 'red' as const, delay: 0 },
     { color: 'yellow' as const, delay: 0.2 },
@@ -13,12 +14,7 @@ const LoadingAnimation = ({ progress: _progress }: LoadingAnimationProps) => {
     { color: 'green' as const, delay: 0.6 },
   ];
 
-  const messages = [
-    "Analyzing your awesome photo...",
-    "Finding the perfect LEGO pieces...",
-    "Assembling your minifigure...",
-    "Adding the finishing touches...",
-  ];
+  const defaultMessage = 'Getting things ready...';
 
   return (
     <div className="flex flex-col items-center justify-center py-12">
@@ -61,22 +57,21 @@ const LoadingAnimation = ({ progress: _progress }: LoadingAnimationProps) => {
         className="text-center"
       >
         <motion.p
-          key={Math.floor(Date.now() / 3000) % messages.length}
+          key={message ?? defaultMessage}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="font-display font-bold text-xl text-foreground"
         >
-          {messages[Math.floor(Date.now() / 3000) % messages.length]}
+          {message ?? defaultMessage}
         </motion.p>
-        <p className="text-muted-foreground mt-2">This usually takes a few seconds</p>
+        <p className="text-muted-foreground mt-2">This usually takes a minute or two</p>
       </motion.div>
 
       {/* Progress bar */}
       <div className="w-64 h-3 bg-muted rounded-full mt-8 overflow-hidden">
         <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: '100%' }}
-          transition={{ duration: 4, ease: 'easeInOut' }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
           className="h-full gradient-hero rounded-full"
         />
       </div>
