@@ -89,6 +89,8 @@ const CreatePage = () => {
     setCurrentStep(1);
     setSelectedImage(null);
     setSelectedFile(null);
+    setProgress(0);
+    setActionDescription(undefined);
   };
 
   const handleBack = () => {
