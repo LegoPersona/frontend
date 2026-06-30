@@ -1,37 +1,29 @@
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Download, ShoppingCart, Share2, Repeat } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getPersona, getPersonaImage } from '@/services/personaApi';
 import legoPersona from '@/assets/lego-persona.jpeg';
+import type { PersonaPart } from '@/types/persona';
+import DownloadInstructionsButton from './DownloadInstructionsButton';
 
 interface ResultsDisplayProps {
   originalImage: string;
   onCreateAnother: () => void;
-  result?: unknown;
+  personaId: string;
 }
 
-const mockParts = [
-  { id: '3024', name: 'Plate 1x1', color: 'Yellow', quantity: 4 },
-  { id: '3023', name: 'Plate 1x2', color: 'Black', quantity: 2 },
-  { id: '3004', name: 'Brick 1x2', color: 'Red', quantity: 3 },
-  { id: '3003', name: 'Brick 2x2', color: 'Blue', quantity: 2 },
-  { id: '3626c', name: 'Minifig Head', color: 'Yellow', quantity: 1 },
-  { id: '973', name: 'Minifig Torso', color: 'Red', quantity: 1 },
-  { id: '970c00', name: 'Minifig Legs', color: 'Blue', quantity: 1 },
-  { id: '3626bp01', name: 'Minifig Hair', color: 'Black', quantity: 1 },
-];
+const ResultsDisplay = ({ originalImage, onCreateAnother, personaId }: ResultsDisplayProps) => {
+  const { data: persona } = useQuery({
+    queryKey: ['persona', personaId],
+    queryFn: () => getPersona(personaId),
+  });
 
-const ResultsDisplay = ({ originalImage, onCreateAnother, result: _result }: ResultsDisplayProps) => {
-  const handleDownload = () => {
-    // Mock download functionality
-    const partsData = mockParts.map(p => `${p.quantity}x ${p.id} - ${p.name} (${p.color})`).join('\n');
-    const blob = new Blob([partsData], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'lego-persona-parts.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const { data: personaImageSrc = legoPersona } = useQuery({
+    queryKey: ['persona-image', personaId],
+    queryFn: () => getPersonaImage(personaId),
+  });
+  const parts: PersonaPart[] = persona?.partsJson ?? [];
 
   return (
     <motion.div
@@ -81,7 +73,7 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, result: _result }: Res
         >
           <p className="font-display font-semibold text-center mb-3 text-primary">LEGO Persona</p>
           <img 
-            src={legoPersona} 
+            src={personaImageSrc} 
             alt="LEGO Persona" 
             className="w-full h-64 object-contain rounded-xl bg-white"
           />
@@ -95,24 +87,23 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, result: _result }: Res
         transition={{ delay: 0.5 }}
         className="bg-card rounded-2xl p-6 shadow-card"
       >
-        <h3 className="font-display font-bold text-xl mb-4">🧱 Parts List</h3>
+        <h3 className="font-display font-bold text-xl mb-4">Parts List</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {mockParts.map((part, index) => (
+          {parts.map((part, index) => (
             <motion.div
-              key={part.id}
+              key={index}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.6 + index * 0.05 }}
               className="bg-muted rounded-lg p-3 text-center"
             >
-              <p className="font-mono text-xs text-muted-foreground">{part.id}</p>
-              <p className="font-semibold text-sm">{part.name}</p>
-              <p className="text-xs text-muted-foreground">{part.color} × {part.quantity}</p>
+              <p className="font-semibold text-sm">{part['Part Name']}</p>
+              <p className="text-xs text-muted-foreground">{part.Color} × {part.Quantity}</p>
             </motion.div>
           ))}
         </div>
         <p className="text-sm text-muted-foreground mt-4 text-center">
-          Total: {mockParts.reduce((acc, p) => acc + p.quantity, 0)} pieces
+          Total: {parts.reduce((acc, p) => acc + Number(p.Quantity), 0)} pieces
         </p>
       </motion.div>
 
@@ -123,34 +114,7 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, result: _result }: Res
         transition={{ delay: 0.7 }}
         className="flex flex-col sm:flex-row gap-4 justify-center"
       >
-        <Button variant="hero" size="xl" onClick={handleDownload}>
-          <Download className="w-5 h-5" />
-          Download Parts File
-        </Button>
-        <Button variant="secondary" size="lg">
-          <ShoppingCart className="w-5 h-5" />
-          Buy on LEGO Store
-        </Button>
-        <Button variant="ghost" size="lg">
-          <Share2 className="w-5 h-5" />
-          Share
-        </Button>
-      </motion.div>
-
-      {/* Info box */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="bg-accent/20 border border-accent rounded-xl p-4 text-center"
-      >
-        <p className="text-sm">
-          <strong>Tip:</strong> Upload the parts file to{' '}
-          <a href="https://www.lego.com" target="_blank" rel="noopener noreferrer" className="text-accent underline">
-            LEGO.com
-          </a>{' '}
-          to easily order all the pieces you need!
-        </p>
+        <DownloadInstructionsButton personaId={personaId} />
       </motion.div>
 
       {/* Create another */}

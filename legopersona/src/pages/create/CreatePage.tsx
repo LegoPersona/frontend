@@ -10,8 +10,7 @@ import ResultsDisplay from '@/components/persona/ResultsDisplay';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   uploadImage,
-  getGenerationStatus,
-  getGenerationResult,
+  getGenerationStatus
 } from "@/services/personaApi";
 
 const steps = [
@@ -26,9 +25,9 @@ const CreatePage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [resultData, setResultData] = useState<any>(null);
+  const [resultPersonaId, setresultPersonaId] = useState<any>(null);
   const [progress, setProgress] = useState(0);
+  const [actionDescription, setActionDescription] = useState<string | undefined>(undefined);
 
   // Redirect to auth if not logged in
 //   useEffect(() => {
@@ -56,29 +55,28 @@ const CreatePage = () => {
     // upload image
     const uploadResponse = await uploadImage(selectedFile);
 
-    const generatedJobId = uploadResponse.job_id;
-
-    setJobId(generatedJobId);
+    const generatedJobId = uploadResponse.jobId;
 
     // polling
     const interval = setInterval(async () => {
       const status = await getGenerationStatus(generatedJobId);
 
-      setProgress(status.progress || 0);
+      setProgress(status.percentCompleteEstimate ?? 0);
+      setActionDescription(status.actionDescription ?? undefined);
 
-      if (status.state === "completed") {
+      if (status.status === "COMPLETED") {
         clearInterval(interval);
 
-        const result = await getGenerationResult(generatedJobId);
+        const result = status.resultPersonaId
 
-        setResultData(result);
+        setresultPersonaId(result);
 
         setCurrentStep(3);
       }
 
-      if (status.state === "failed") {
+      if (status.status === "FAILED") {
         clearInterval(interval);
-        alert("Generation failed");
+        alert(`Generation failed${status.errorMessage ? `: ${status.errorMessage}` : ""}`);
       }
     }, 2000);
   } catch (err) {
@@ -91,6 +89,8 @@ const CreatePage = () => {
     setCurrentStep(1);
     setSelectedImage(null);
     setSelectedFile(null);
+    setProgress(0);
+    setActionDescription(undefined);
   };
 
   const handleBack = () => {
@@ -164,7 +164,7 @@ const CreatePage = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-card rounded-2xl shadow-card p-8"
             >
-              <LoadingAnimation progress={progress} />
+              <LoadingAnimation progress={progress} message={actionDescription} />
             </motion.div>
           )}
 
@@ -179,7 +179,7 @@ const CreatePage = () => {
               <ResultsDisplay
                 originalImage={selectedImage}
                 onCreateAnother={handleCreateAnother}
-                result={resultData}
+                personaId={resultPersonaId}
               />
             </motion.div>
           )}

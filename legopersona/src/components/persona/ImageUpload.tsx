@@ -58,11 +58,11 @@ const ImageUpload = ({ onImageSelect, selectedImage, onClear }: ImageUploadProps
             exit={{ opacity: 0, scale: 0.9 }}
             className="relative"
           >
-            <div className="relative rounded-2xl overflow-hidden shadow-card bg-card">
+            <div className="relative rounded-2xl overflow-hidden shadow-card bg-card aspect-square">
               <img 
                 src={selectedImage} 
                 alt="Selected" 
-                className="w-full h-64 object-cover"
+                className="w-full h-full object-cover"
               />
               <div className="absolute top-4 right-4 flex gap-2">
                 <Button
@@ -92,8 +92,8 @@ const ImageUpload = ({ onImageSelect, selectedImage, onClear }: ImageUploadProps
             <div
               {...getRootProps()}
               className={cn(
-                'relative border-3 border-dashed rounded-2xl p-8 transition-all duration-300 cursor-pointer',
-                'bg-muted/50 hover:bg-muted',
+                'relative border-3 border-dashed rounded-2xl transition-all duration-300 cursor-pointer aspect-square',
+                'bg-muted/50 hover:bg-muted flex items-center justify-center',
                 isDragActive ? 'border-primary bg-primary/10 scale-[1.02]' : 'border-border',
                 error && 'border-destructive bg-destructive/5'
               )}

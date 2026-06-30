@@ -1,36 +1,41 @@
-import axios from "axios";
+import api from './api';
+import type { PersonaDocument } from '@/types/persona';
 
-const API_URL = import.meta.env.VITE_API_URL;
+export type { PersonaDocument };
 
 export const uploadImage = async (file: File) => {
   const formData = new FormData();
   formData.append("image", file);
 
-  const response = await axios.post(
-    `${API_URL}/generate`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
+  const response = await api.post('/personas', formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 
   return response.data;
 };
 
 export const getGenerationStatus = async (jobId: string) => {
-  const response = await axios.get(
-    `${API_URL}/generate/${jobId}/status`
-  );
+  const response = await api.get(`/personas/tasks/${jobId}/status`);
 
   return response.data;
 };
 
-export const getGenerationResult = async (jobId: string) => {
-  const response = await axios.get(
-    `${API_URL}/generate/${jobId}/result`
-  );
-
+export const getPersona = async (personaId: string): Promise<PersonaDocument> => {
+  const response = await api.get(`/personas/${personaId}`);
   return response.data;
+};
+
+export const getPersonaImage = async (personaId: string): Promise<string> => {
+  const response = await api.get(`/personas/${personaId}/image`, { responseType: 'blob' });
+  return URL.createObjectURL(response.data as Blob);
+};
+
+export const getPersonaInstructions = async (personaId: string): Promise<string> => {
+  const response = await api.get(`/personas/${personaId}/instructions`, {
+    responseType: 'blob',
+    timeout: 300000, // 5 minutes — PDF generation can take a while
+  });
+  return URL.createObjectURL(response.data as Blob);
 };
