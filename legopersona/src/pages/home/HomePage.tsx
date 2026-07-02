@@ -1,11 +1,16 @@
-import PageContainer from '@/components/layout/PageContainer'
+import CtaBanner from './CtaBanner'
+import HeroSection from './HeroSection'
+import HowItWorks from './HowItWorks'
+import StatsStrip from './StatsStrip'
 
 function HomePage() {
   return (
-    <PageContainer>
-      <h1 className="text-2xl font-semibold">Homepage</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Main landing and discovery content will be added here.</p>
-    </PageContainer>
+    <>
+      <HeroSection />
+      <StatsStrip />
+      <HowItWorks />
+      <CtaBanner />
+    </>
   )
 }
 
