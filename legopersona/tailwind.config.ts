@@ -39,11 +39,23 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        lego: {
+          red: 'hsl(var(--lego-red))',
+          yellow: 'hsl(var(--lego-yellow))',
+          blue: 'hsl(var(--lego-blue))',
+          green: 'hsl(var(--lego-green))',
+          orange: 'hsl(var(--lego-orange))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      boxShadow: {
+        lego: 'var(--shadow-lego)',
+        card: 'var(--shadow-card)',
+        elevated: 'var(--shadow-elevated)',
       },
     },
   },

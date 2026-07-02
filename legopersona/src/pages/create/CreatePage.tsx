@@ -100,7 +100,7 @@ const CreatePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pt-20 pb-12 px-4">
+    <div className="min-h-screen bg-background pt-28 pb-12 px-4">
       <div className="container mx-auto max-w-3xl">
         {/* Stepper */}
         <motion.div
