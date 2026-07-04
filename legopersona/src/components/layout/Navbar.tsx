@@ -1,8 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
 import { User, LogOut, Menu, X, Users, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import RateLimitGauge from '@/components/persona/RateLimitGauge'
+import UserMenu from '@/components/layout/UserMenu'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import fullLogo from '@/assets/full-logo.png'
@@ -40,18 +44,7 @@ const Navbar = () => {
               </Button>
             </Link>
             {isAuthenticated ? (
-              <>
-                <Link to="/profile">
-                  <Button variant="ghost" className="gap-2">
-                    <User className="w-4 h-4" />
-                    {user?.username}
-                  </Button>
-                </Link>
-                <Button variant="outline" size="sm" onClick={() => logout()}>
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </Button>
-              </>
+              <UserMenu />
             ) : (
               !isHome && (
                 <Link to="/auth">
@@ -103,13 +96,27 @@ const Navbar = () => {
               </Link>
               {isAuthenticated ? (
                 <>
+                  <Separator />
+                  <div className="flex items-center gap-3 px-4">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary/10 font-display font-bold text-primary">
+                        {user?.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{user?.username}</span>
+                  </div>
+                  <RateLimitGauge label="daily creations left" className="px-4" />
                   <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-2">
                       <User className="w-4 h-4" />
-                      {user?.username}
+                      Profile
                     </Button>
                   </Link>
-                  <Button variant="outline" onClick={() => { logout(); setMobileMenuOpen(false) }}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                    onClick={() => { logout(); setMobileMenuOpen(false) }}
+                  >
                     <LogOut className="w-4 h-4" />
                     Logout
                   </Button>

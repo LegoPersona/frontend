@@ -16,6 +16,20 @@ export const uploadImage = async (file: File) => {
   return response.data;
 };
 
+export interface RateLimitStatus {
+  unlimited: boolean;
+  limit: number;
+  used: number;
+  remaining: number;
+  resetsAt: string | null;
+}
+
+export const getRateLimitStatus = async (): Promise<RateLimitStatus> => {
+  const response = await api.get('/personas/ratelimit');
+
+  return response.data;
+};
+
 export const getGenerationStatus = async (jobId: string) => {
   const response = await api.get(`/personas/tasks/${jobId}/status`);
 

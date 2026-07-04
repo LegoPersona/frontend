@@ -7,11 +7,13 @@ import Stepper from '@/components/persona/Stepper';
 import ImageUpload from '@/components/persona/ImageUpload';
 import LoadingAnimation from '@/components/persona/LoadingAnimation';
 import ResultsDisplay from '@/components/persona/ResultsDisplay';
+import RateLimitIndicator from '@/components/persona/RateLimitIndicator';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   uploadImage,
   getGenerationStatus
 } from "@/services/personaApi";
+import { useRateLimit } from '@/contexts/RateLimitContext';
 
 const steps = [
   { number: 1, title: 'Upload', description: 'Choose your photo' },
@@ -28,6 +30,14 @@ const CreatePage = () => {
   const [resultPersonaId, setresultPersonaId] = useState<any>(null);
   const [progress, setProgress] = useState(0);
   const [actionDescription, setActionDescription] = useState<string | undefined>(undefined);
+  const { status: rateLimit, refresh: refreshRateLimit } = useRateLimit();
+
+  useEffect(() => {
+    if (currentStep !== 1) return;
+    refreshRateLimit();
+  }, [currentStep, refreshRateLimit]);
+
+  const limitReached = rateLimit !== null && !rateLimit.unlimited && rateLimit.remaining <= 0;
 
   // Redirect to auth if not logged in
 //   useEffect(() => {
@@ -57,6 +67,9 @@ const CreatePage = () => {
 
     const generatedJobId = uploadResponse.jobId;
 
+    // The upload consumed a daily slot — update the navbar gauge.
+    refreshRateLimit();
+
     // polling
     const interval = setInterval(async () => {
       const status = await getGenerationStatus(generatedJobId);
@@ -79,9 +92,14 @@ const CreatePage = () => {
         alert(`Generation failed${status.errorMessage ? `: ${status.errorMessage}` : ""}`);
       }
     }, 2000);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    alert("Something went wrong");
+    setCurrentStep(1);
+    if (err?.response?.status === 429) {
+      alert("You've reached your daily persona creation limit. Please try again tomorrow.");
+    } else {
+      alert("Something went wrong");
+    }
   }
 };
 
@@ -147,12 +165,14 @@ const CreatePage = () => {
                   variant="hero"
                   size="lg"
                   onClick={handleNext}
-                  disabled={!selectedImage}
+                  disabled={!selectedImage || limitReached}
                 >
                   Generate My Persona
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
+
+              {limitReached && <RateLimitIndicator status={rateLimit} className="mt-4" />}
             </motion.div>
           )}
 
