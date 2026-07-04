@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import Stepper from '@/components/persona/Stepper';
 import ImageUpload from '@/components/persona/ImageUpload';
 import LoadingAnimation from '@/components/persona/LoadingAnimation';
+import GenerationError from '@/components/persona/GenerationError';
 import ResultsDisplay from '@/components/persona/ResultsDisplay';
 import RateLimitIndicator from '@/components/persona/RateLimitIndicator';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -30,6 +31,7 @@ const CreatePage = () => {
   const [resultPersonaId, setresultPersonaId] = useState<any>(null);
   const [progress, setProgress] = useState(0);
   const [actionDescription, setActionDescription] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
   const { status: rateLimit, refresh: refreshRateLimit } = useRateLimit();
 
   useEffect(() => {
@@ -60,6 +62,7 @@ const CreatePage = () => {
   if (currentStep !== 1 || !selectedFile) return;
 
   try {
+    setError(null);
     setCurrentStep(2);
 
     // upload image
@@ -72,33 +75,39 @@ const CreatePage = () => {
 
     // polling
     const interval = setInterval(async () => {
-      const status = await getGenerationStatus(generatedJobId);
+      try {
+        const status = await getGenerationStatus(generatedJobId);
 
-      setProgress(status.percentCompleteEstimate ?? 0);
-      setActionDescription(status.actionDescription ?? undefined);
+        setProgress(status.percentCompleteEstimate ?? 0);
+        setActionDescription(status.actionDescription ?? undefined);
 
-      if (status.status === "COMPLETED") {
+        if (status.status === "COMPLETED") {
+          clearInterval(interval);
+
+          const result = status.resultPersonaId
+
+          setresultPersonaId(result);
+
+          setCurrentStep(3);
+        }
+
+        if (status.status === "FAILED") {
+          clearInterval(interval);
+          console.error("Generation failed:", status.errorMessage);
+          setError("We couldn't build your persona this time. Please try again later.");
+        }
+      } catch (pollErr) {
+        console.error(pollErr);
         clearInterval(interval);
-
-        const result = status.resultPersonaId
-
-        setresultPersonaId(result);
-
-        setCurrentStep(3);
-      }
-
-      if (status.status === "FAILED") {
-        clearInterval(interval);
-        alert(`Generation failed${status.errorMessage ? `: ${status.errorMessage}` : ""}`);
+        setError("We lost track of your persona's progress. Please try again.");
       }
     }, 2000);
   } catch (err: any) {
     console.error(err);
-    setCurrentStep(1);
     if (err?.response?.status === 429) {
-      alert("You've reached your daily persona creation limit. Please try again tomorrow.");
+      setError("You've reached your daily persona creation limit. Please try again tomorrow.");
     } else {
-      alert("Something went wrong");
+      setError("Something went wrong while uploading your photo.");
     }
   }
 };
@@ -109,6 +118,18 @@ const CreatePage = () => {
     setSelectedFile(null);
     setProgress(0);
     setActionDescription(undefined);
+    setError(null);
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setProgress(0);
+    setActionDescription(undefined);
+    setCurrentStep(1);
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
   };
 
   const handleBack = () => {
@@ -184,7 +205,15 @@ const CreatePage = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-card rounded-2xl shadow-card p-8"
             >
-              <LoadingAnimation progress={progress} message={actionDescription} />
+              {error ? (
+                <GenerationError
+                  message={error}
+                  onRetry={handleRetry}
+                  onGoHome={handleGoHome}
+                />
+              ) : (
+                <LoadingAnimation progress={progress} message={actionDescription} />
+              )}
             </motion.div>
           )}
 
