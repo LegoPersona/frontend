@@ -1,4 +1,5 @@
 import type { Persona, PersonaComment, HairColor, SkinTone } from "@/types/persona";
+import { HAIR_HEX, SKIN_HEX } from "@/lib/legoTheme";
 
 let idSeq = 0;
 const cid = () => `c_${++idSeq}`;
