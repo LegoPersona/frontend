@@ -100,4 +100,4 @@ export interface Persona {
     createdAt: string;
     updatedAt: string;
   };
-}
+};
