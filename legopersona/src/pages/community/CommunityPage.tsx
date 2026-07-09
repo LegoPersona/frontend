@@ -5,6 +5,7 @@ import { LEGO } from "@/lib/legoTheme";
 import { mockPersonas } from "@/data/mockPersonas";
 // חיבור לשרת: בטל הערה כשה-API מוכן
 // import { getGallery, likePersona, unlikePersona, addComment } from "@/services/personaApi";
+import { useAuth } from "@/contexts/AuthContext";
 import FilterSidebar from "@/components/community/FilterSidebar";
 import SortDropdown from "@/components/community/SortDropdown";
 import PostCard from "@/components/community/PostCard";
@@ -19,11 +20,13 @@ const Stud = ({ color }: { color: string }) => (
 );
 
 const CommunityPage = () => {
+  const { user } = useAuth();
   const [personas, setPersonas] = useState<Persona[]>(mockPersonas);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(8);
+  const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
 
   /* ---- חיבור לשרת (מחליף את הפילטור המקומי כשה-API מוכן) ----
   useEffect(() => {
@@ -105,6 +108,8 @@ const CommunityPage = () => {
   };
 
   const handleComment = (personaId: string, text: string) => {
+    if (!user) return;
+    
     setPersonas((prev) =>
       prev.map((p) => {
         if (p._id !== personaId) return p;
@@ -118,9 +123,9 @@ const CommunityPage = () => {
               comments: [
                 ...com.comments,
                 {
-                  _id: Math.random().toString(36).slice(2),
-                  user_id: "me",
-                  username: "You",
+                  _id: `c-${Date.now()}`,
+                  user_id: user.userId,
+                  username: user.username,
                   text,
                   createdAt: new Date().toISOString(),
                 },
@@ -136,9 +141,14 @@ const CommunityPage = () => {
 
   const selectedPersona = personas.find((p) => p._id === selectedId) ?? null;
 
+  const activeFilterCount =
+    filters.hairColors.length +
+    filters.skinTones.length +
+    (filters.hasGlasses !== null ? 1 : 0) +
+    (filters.hasBeard !== null ? 1 : 0);
+
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF7", fontFamily: "'Nunito', sans-serif" }}>
-      <header
+  <div className="min-h-screen pt-20" style={{ background: "#FAFAF7", fontFamily: "'Nunito', sans-serif" }}>      <header
         className="text-center py-12 px-4"
         style={{ background: "linear-gradient(120deg, #FDECEC, #FFF9DE, #E9F3FB)" }}
       >
@@ -160,12 +170,27 @@ const CommunityPage = () => {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6">
-        <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
-
+<div className="hidden lg:block">
+          <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
+        </div>
         <section className="flex-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm">
-              <b style={{ color: LEGO.red }}>{filteredAndSorted.length}</b> results
+<div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                className="lg:hidden flex items-center gap-2 border rounded-2xl px-4 py-2 text-sm font-bold bg-white"
+                style={{ borderColor: LEGO.red, color: LEGO.red }}
+                onClick={() => setFilterSidebarOpen(true)}
+              >
+                ▼ Filters
+                {activeFilterCount > 0 && (
+                  <span className="text-white text-xs px-1.5 py-0.5 rounded-full" style={{ background: LEGO.red }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+              <div className="text-sm">
+                <b style={{ color: LEGO.red }}>{filteredAndSorted.length}</b> results
+              </div>
             </div>
             <SortDropdown value={sortBy} onChange={setSortBy} />
           </div>
@@ -178,16 +203,70 @@ const CommunityPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+<div className="columns-1 sm:columns-2 xl:columns-3 gap-5 space-y-5">
               {displayed.map((p) => (
-                <PostCard key={p._id} persona={p} onLike={handleLike} onOpen={(pp) => setSelectedId(pp._id)} />
+                <div key={p._id} className="break-inside-avoid">
+                  <PostCard persona={p} onLike={handleLike} onOpen={(pp) => setSelectedId(pp._id)} />
+                </div>
               ))}
             </div>
           )}
 
-          {hasMore && <div className="text-center text-gray-400 text-sm py-6">Scroll for more…</div>}
-        </section>
+{hasMore && (
+            <div className="text-center py-8">
+              <div className="flex justify-center gap-2 mb-2">
+                <Stud color={LEGO.red} />
+                <Stud color={LEGO.yellow} />
+                <Stud color={LEGO.blue} />
+              </div>
+              <p className="text-gray-400 text-sm">Loading more...</p>
+            </div>
+          )}        </section>
       </main>
+
+ {filterSidebarOpen && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+          onClick={() => setFilterSidebarOpen(false)}
+        >
+          <div
+            className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white p-4 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="mb-2 text-gray-400 hover:text-gray-800 text-2xl leading-none"
+              onClick={() => setFilterSidebarOpen(false)}
+              aria-label="Close filters"
+            >
+              ×
+            </button>
+            <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
+          </div>
+        </div>
+      )}
+
+{filterSidebarOpen && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+          onClick={() => setFilterSidebarOpen(false)}
+        >
+          <div
+            className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white p-4 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="mb-2 text-gray-400 hover:text-gray-800 text-2xl leading-none"
+              onClick={() => setFilterSidebarOpen(false)}
+              aria-label="Close filters"
+            >
+              ×
+            </button>
+            <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
+          </div>
+        </div>
+      )}
 
       <PostDetailModal
         persona={selectedPersona}
