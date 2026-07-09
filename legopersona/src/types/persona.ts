@@ -23,7 +23,7 @@ export interface PersonaResult {
 export interface PersonaPart {
   'PartName': string;
   'Color': string;
-  'Quantity': string;
+  'Quantity': number;
   'PartID': string;
   'ColorCode': string;
 }
