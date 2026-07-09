@@ -21,11 +21,11 @@ export interface PersonaResult {
 }
 
 export interface PersonaPart {
-  'Part Name': string;
+  'PartName': string;
   'Color': string;
   'Quantity': string;
-  'Part ID': string;
-  'Color Code': string;
+  'PartID': string;
+  'ColorCode': string;
 }
 
 export interface PersonaDocument {
@@ -61,12 +61,6 @@ export interface CommunityModule {
   likes: number;
   isLikedByUser: boolean;
   comments: PersonaComment[];
-}
-
-export interface PersonaPart {
-  part: string;
-  color: string;
-  qty: number;
 }
 
 export interface FilterState {
