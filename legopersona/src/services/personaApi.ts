@@ -53,3 +53,7 @@ export const getPersonaInstructions = async (personaId: string): Promise<string>
   });
   return URL.createObjectURL(response.data as Blob);
 };
+
+export const deletePersona = async (personaId: string): Promise<void> => {
+  await api.delete(`/personas/${personaId}`);
+};

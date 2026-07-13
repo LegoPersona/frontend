@@ -8,8 +8,8 @@ import { ChevronsLeftRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type BeforeAfterSliderProps = {
-  originalImage: string
-  legoImage: string
+  originalImage: string | null
+  legoImage: string | null
   originalAlt?: string
   legoAlt?: string
   className?: string
@@ -28,6 +28,9 @@ function BeforeAfterSlider({
 }: BeforeAfterSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState(50)
+  const hasOriginalImage = Boolean(originalImage)
+  const hasLegoImage = Boolean(legoImage)
+  const hasBothImages = hasOriginalImage && hasLegoImage
 
   const updatePosition = useCallback((clientX: number) => {
     const rect = containerRef.current?.getBoundingClientRect()
@@ -39,14 +42,91 @@ function BeforeAfterSlider({
   }, [])
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!hasBothImages) return
+
     event.currentTarget.setPointerCapture(event.pointerId)
     updatePosition(event.clientX)
   }
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!hasBothImages) return
     if (event.buttons !== 1) return
 
     updatePosition(event.clientX)
+  }
+
+  if (!hasBothImages) {
+    return (
+      <div
+        className={cn(
+          'relative w-full touch-none select-none overflow-hidden bg-muted',
+          compact
+            ? 'aspect-[4/3] rounded-t-xl'
+            : 'aspect-[2/3] rounded-lg shadow-elevated',
+          className,
+        )}
+      >
+        {hasOriginalImage && originalImage ? (
+          <img
+            src={originalImage}
+            alt={originalAlt}
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+
+        {hasLegoImage && legoImage ? (
+          <img
+            src={legoImage}
+            alt={legoAlt}
+            draggable={false}
+            className={cn(
+              'absolute inset-0 h-full w-full object-contain bg-card',
+              compact ? 'p-2' : 'p-6',
+              legoImageClassName,
+            )}
+          />
+        ) : null}
+
+        {!hasOriginalImage && !hasLegoImage ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted px-4 text-center text-sm text-muted-foreground">
+            Images are not available for this persona yet.
+          </div>
+        ) : null}
+
+        {hasOriginalImage && !hasLegoImage ? (
+          <div className="absolute inset-y-0 right-0 flex w-1/2 items-center justify-center bg-card/90 px-4 text-center text-xs font-semibold text-muted-foreground">
+            LEGO image is unavailable
+          </div>
+        ) : null}
+
+        {!hasOriginalImage && hasLegoImage ? (
+          <div className="absolute inset-y-0 left-0 flex w-1/2 items-center justify-center bg-card/90 px-4 text-center text-xs font-semibold text-muted-foreground">
+            Original image is unavailable
+          </div>
+        ) : null}
+
+        <span
+          className={cn(
+            'absolute left-3 top-3 rounded-full font-semibold',
+            hasOriginalImage ? 'bg-foreground/70 text-background' : 'bg-muted-foreground/30 text-foreground',
+            compact ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs',
+          )}
+        >
+          Original
+        </span>
+
+        <span
+          className={cn(
+            'absolute right-3 top-3 rounded-full font-semibold',
+            hasLegoImage ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground/30 text-foreground',
+            compact ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs',
+          )}
+        >
+          LEGO
+        </span>
+      </div>
+    )
   }
 
   return (
@@ -63,7 +143,7 @@ function BeforeAfterSlider({
       )}
     >
       <img
-        src={originalImage}
+        src={originalImage || ''}
         alt={originalAlt}
         draggable={false}
         className="absolute inset-0 h-full w-full object-cover"
@@ -78,7 +158,7 @@ function BeforeAfterSlider({
         <div className="absolute inset-0 bg-card" />
 
         <img
-          src={legoImage}
+          src={legoImage || ''}
           alt={legoAlt}
           draggable={false}
           className={cn(

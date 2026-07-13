@@ -49,11 +49,12 @@ export interface Achievement {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  requirement: string;
+  icon?: string;
+  requirement?: string;
   isUnlocked: boolean;
-  unlockedAt?: Date;
+  unlockedAt?: Date | string | null;
   progress?: number;
+  target?: number;
   total?: number;
 }
 
@@ -62,9 +63,20 @@ interface AchievementBadgeProps {
   achievement: Achievement;
 }
 
+const ACHIEVEMENT_ICONS: Record<string, string> = {
+  'brick-starter': '🧱',
+  'master-builder': '🏗️',
+  'crowd-favorite': '⭐',
+  'community-leader': '💬',
+  'social-butterfly': '🦋',
+  trendsetter: '🔥',
+};
+
 const AchievementBadge = ({ achievement }: AchievementBadgeProps) => {
-  const progressPercent = achievement.total 
-    ? Math.min((achievement.progress || 0) / achievement.total * 100, 100)
+  const total = achievement.target ?? achievement.total;
+  const badgeIcon = achievement.icon ?? ACHIEVEMENT_ICONS[achievement.id] ?? '🏅';
+  const progressPercent = total
+    ? Math.min((achievement.progress || 0) / total * 100, 100)
     : 0;
 
   return (
@@ -88,7 +100,7 @@ const AchievementBadge = ({ achievement }: AchievementBadgeProps) => {
           }`}
         >
           {achievement.isUnlocked ? (
-            achievement.icon
+            badgeIcon
           ) : (
             <Lock className="w-6 h-6 text-muted-foreground" />
           )}
@@ -103,11 +115,11 @@ const AchievementBadge = ({ achievement }: AchievementBadgeProps) => {
           </p>
 
           {/* Progress bar for locked achievements */}
-          {!achievement.isUnlocked && achievement.total && (
+          {!achievement.isUnlocked && total && (
             <div className="mt-3">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Progress</span>
-                <span>{achievement.progress || 0} / {achievement.total}</span>
+                <span>{achievement.progress || 0} / {total}</span>
               </div>
               <div className="h-2 bg-border rounded-full overflow-hidden">
                 <motion.div
