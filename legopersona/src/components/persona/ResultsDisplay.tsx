@@ -6,6 +6,7 @@ import { getPersona, getPersonaImage } from '@/services/personaApi';
 import legoPersona from '@/assets/lego-persona.jpeg';
 import type { PersonaPart } from '@/types/persona';
 import DownloadInstructionsButton from './DownloadInstructionsButton';
+import DownloadLegoPartsButton from './DownloadLegoPartsButton';
 
 interface ResultsDisplayProps {
   originalImage: string;
@@ -115,6 +116,7 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, personaId }: ResultsDi
         className="flex flex-col sm:flex-row gap-4 justify-center"
       >
         <DownloadInstructionsButton personaId={personaId} />
+        <DownloadLegoPartsButton personaId={personaId} />
       </motion.div>
 
       {/* Create another */}
