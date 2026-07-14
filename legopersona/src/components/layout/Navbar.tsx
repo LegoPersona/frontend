@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { usePersonaGeneration } from '@/contexts/PersonaGenerationContext'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { User, LogOut, Menu, X, Users, Sparkles } from 'lucide-react'
+import { User, LogOut, Menu, X, Users, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import RateLimitGauge from '@/components/persona/RateLimitGauge'
 import UserMenu from '@/components/layout/UserMenu'
@@ -17,6 +18,44 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const isHome = location.pathname === '/' || location.pathname === '/auth'
+
+  const { isRunning, isReady, isFailed, progress } = usePersonaGeneration()
+  const onCreatePage = location.pathname === '/create'
+
+  // Off the create page, the Create button doubles as a "back to pipeline"
+  // button reflecting the run's live state.
+  const createButtonContent = (() => {
+    if (!onCreatePage && isRunning) {
+      return (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Generating… {progress}%
+        </>
+      )
+    }
+    if (!onCreatePage && isReady) {
+      return (
+        <>
+          <CheckCircle2 className="w-4 h-4" />
+          Persona ready!
+        </>
+      )
+    }
+    if (!onCreatePage && isFailed) {
+      return (
+        <>
+          <AlertCircle className="w-4 h-4" />
+          Generation failed
+        </>
+      )
+    }
+    return (
+      <>
+        <Sparkles className="w-4 h-4" />
+        Create
+      </>
+    )
+  })()
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg">
@@ -39,8 +78,7 @@ const Navbar = () => {
             </Link>
             <Link to="/create">
               <Button className="gap-2 shadow-lego">
-                <Sparkles className="w-4 h-4" />
-                Create
+                {createButtonContent}
               </Button>
             </Link>
             {isAuthenticated ? (
@@ -90,8 +128,7 @@ const Navbar = () => {
               </Link>
               <Link to="/create" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full justify-start gap-2 shadow-lego">
-                  <Sparkles className="w-4 h-4" />
-                  Create
+                  {createButtonContent}
                 </Button>
               </Link>
               {isAuthenticated ? (
