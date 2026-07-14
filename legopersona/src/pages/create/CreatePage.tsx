@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Stepper from '@/components/persona/Stepper';
 import ImageUpload from '@/components/persona/ImageUpload';
@@ -10,11 +9,8 @@ import GenerationError from '@/components/persona/GenerationError';
 import ResultsDisplay from '@/components/persona/ResultsDisplay';
 import RateLimitIndicator from '@/components/persona/RateLimitIndicator';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import {
-  uploadImage,
-  getGenerationStatus
-} from "@/services/personaApi";
 import { useRateLimit } from '@/contexts/RateLimitContext';
+import { usePersonaGeneration } from '@/contexts/PersonaGenerationContext';
 
 const steps = [
   { number: 1, title: 'Upload', description: 'Choose your photo' },
@@ -23,15 +19,20 @@ const steps = [
 ];
 
 const CreatePage = () => {
-//   const { isAuthenticated, addPersona } = useAuth();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [resultPersonaId, setresultPersonaId] = useState<any>(null);
-  const [progress, setProgress] = useState(0);
-  const [actionDescription, setActionDescription] = useState<string | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    currentStep,
+    selectedImage,
+    progress,
+    actionDescription,
+    resultPersonaId,
+    error,
+    selectImage,
+    clearImage,
+    startGeneration,
+    retry,
+    reset,
+  } = usePersonaGeneration();
   const { status: rateLimit, refresh: refreshRateLimit } = useRateLimit();
 
   useEffect(() => {
@@ -40,93 +41,6 @@ const CreatePage = () => {
   }, [currentStep, refreshRateLimit]);
 
   const limitReached = rateLimit !== null && !rateLimit.unlimited && rateLimit.remaining <= 0;
-
-  // Redirect to auth if not logged in
-//   useEffect(() => {
-//     if (!isAuthenticated) {
-//       navigate('/auth');
-//     }
-//   }, [isAuthenticated, navigate]);
-
-  const handleImageSelect = (file: File, preview: string) => {
-    setSelectedFile(file);
-    setSelectedImage(preview);
-  };
-
-  const handleClearImage = () => {
-    setSelectedImage(null);
-    setSelectedFile(null);
-  };
-
-  const handleNext = async () => {
-  if (currentStep !== 1 || !selectedFile) return;
-
-  try {
-    setError(null);
-    setCurrentStep(2);
-
-    // upload image
-    const uploadResponse = await uploadImage(selectedFile);
-
-    const generatedJobId = uploadResponse.jobId;
-
-    // The upload consumed a daily slot — update the navbar gauge.
-    refreshRateLimit();
-
-    // polling
-    const interval = setInterval(async () => {
-      try {
-        const status = await getGenerationStatus(generatedJobId);
-
-        setProgress(status.percentCompleteEstimate ?? 0);
-        setActionDescription(status.actionDescription ?? undefined);
-
-        if (status.status === "COMPLETED") {
-          clearInterval(interval);
-
-          const result = status.resultPersonaId
-
-          setresultPersonaId(result);
-
-          setCurrentStep(3);
-        }
-
-        if (status.status === "FAILED") {
-          clearInterval(interval);
-          console.error("Generation failed:", status.errorMessage);
-          setError("We couldn't build your persona this time. Please try again later.");
-        }
-      } catch (pollErr) {
-        console.error(pollErr);
-        clearInterval(interval);
-        setError("We lost track of your persona's progress. Please try again.");
-      }
-    }, 2000);
-  } catch (err: any) {
-    console.error(err);
-    if (err?.response?.status === 429) {
-      setError("You've reached your daily persona creation limit. Please try again tomorrow.");
-    } else {
-      setError("Something went wrong while uploading your photo.");
-    }
-  }
-};
-
-  const handleCreateAnother = () => {
-    setCurrentStep(1);
-    setSelectedImage(null);
-    setSelectedFile(null);
-    setProgress(0);
-    setActionDescription(undefined);
-    setError(null);
-  };
-
-  const handleRetry = () => {
-    setError(null);
-    setProgress(0);
-    setActionDescription(undefined);
-    setCurrentStep(1);
-  };
 
   const handleGoHome = () => {
     navigate('/');
@@ -172,9 +86,9 @@ const CreatePage = () => {
               </div>
 
               <ImageUpload
-                onImageSelect={handleImageSelect}
+                onImageSelect={selectImage}
                 selectedImage={selectedImage || undefined}
-                onClear={handleClearImage}
+                onClear={clearImage}
               />
 
               <div className="flex justify-between mt-8">
@@ -185,7 +99,7 @@ const CreatePage = () => {
                 <Button
                   variant="hero"
                   size="lg"
-                  onClick={handleNext}
+                  onClick={startGeneration}
                   disabled={!selectedImage || limitReached}
                 >
                   Generate My Persona
@@ -208,7 +122,7 @@ const CreatePage = () => {
               {error ? (
                 <GenerationError
                   message={error}
-                  onRetry={handleRetry}
+                  onRetry={retry}
                   onGoHome={handleGoHome}
                 />
               ) : (
@@ -217,7 +131,7 @@ const CreatePage = () => {
             </motion.div>
           )}
 
-          {currentStep === 3 && selectedImage && (
+          {currentStep === 3 && selectedImage && resultPersonaId && (
             <motion.div
               key="step3"
               initial={{ opacity: 0, y: 20 }}
@@ -227,7 +141,7 @@ const CreatePage = () => {
             >
               <ResultsDisplay
                 originalImage={selectedImage}
-                onCreateAnother={handleCreateAnother}
+                onCreateAnother={reset}
                 personaId={resultPersonaId}
               />
             </motion.div>

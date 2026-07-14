@@ -58,6 +58,10 @@ export const getGenerationStatus = async (jobId: string) => {
   return response.data;
 };
 
+export const cancelGeneration = async (jobId: string): Promise<void> => {
+  await api.post(`/personas/tasks/${jobId}/cancel`);
+};
+
 export const getPersona = async (personaId: string): Promise<PersonaDocument> => {
   const response = await api.get<PersonaDocument>(`/personas/${personaId}`);
   const persona = response.data;
