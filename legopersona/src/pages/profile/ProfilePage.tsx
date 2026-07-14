@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -15,12 +15,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import LegoBrick from '@/components/persona/LegoBrick'
+import PersonaDetailModal from '@/components/persona/PersonaDetailModal'
 import AchievementBadge from '@/components/community/AchievementBadge'
 import BeforeAfterSlider from '@/pages/home/BeforeAfterSlider'
-import { Plus, Calendar, Boxes, Trophy, Trash2, Pencil, Camera, Save, X } from 'lucide-react'
+import { Plus, Calendar, Boxes, Trophy, Trash2, Pencil, Camera, Save, X, Info, MoreVertical } from 'lucide-react'
 import { profileApi } from '@/services/profileApi'
 import { deletePersona } from '@/services/personaApi'
 import { toast } from '@/components/ui/use-toast'
@@ -194,6 +200,7 @@ const ProfilePage = () => {
   const [editError, setEditError] = useState<string | null>(null)
   const [isHeaderProfileImageBroken, setIsHeaderProfileImageBroken] = useState(false)
   const [personaIdToDelete, setPersonaIdToDelete] = useState<string | null>(null)
+  const [personaToView, setPersonaToView] = useState<ProfilePersona | null>(null)
   const [isDeletingPersona, setIsDeletingPersona] = useState(false)
   const isMountedRef = useRef(true)
   const profileImageInputRef = useRef<HTMLInputElement | null>(null)
@@ -225,37 +232,50 @@ const ProfilePage = () => {
     ?? savedProfileImageUrl
     ?? null
 
-  useEffect(() => {
+  // Reset the broken flag when the image URL changes, during render instead of
+  // in an effect (https://react.dev/learn/you-might-not-need-an-effect).
+  const [lastHeaderProfileImage, setLastHeaderProfileImage] = useState(resolvedHeaderProfileImage)
+
+  if (lastHeaderProfileImage !== resolvedHeaderProfileImage) {
+    setLastHeaderProfileImage(resolvedHeaderProfileImage)
     setIsHeaderProfileImageBroken(false)
-  }, [resolvedHeaderProfileImage])
+  }
 
-  const loadProfile = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+  // All setState calls live in promise callbacks: isLoading starts as true and
+  // retryLoadProfile resets the flags before re-invoking, so the mount effect
+  // never sets state synchronously.
+  const loadProfile = useCallback(() => {
+    profileApi
+      .getProfile()
+      .then((data) => {
+        if (!isMountedRef.current) return
 
-    try {
-      const data = await profileApi.getProfile()
+        setProfile(data)
+        setEditedUsername(data.user.username)
+        setProfileImagePreview(data.user.profileImageUrl)
+      })
+      .catch((loadError) => {
+        console.error('Failed to load profile:', loadError)
 
-      if (!isMountedRef.current) return
+        if (!isMountedRef.current) return
 
-      setProfile(data)
-      setEditedUsername(data.user.username)
-      setProfileImagePreview(data.user.profileImageUrl)
-    } catch (loadError) {
-      console.error('Failed to load profile:', loadError)
-
-      if (!isMountedRef.current) return
-
-      setError("We couldn't load your profile. Please try again.")
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false)
-      }
-    }
+        setError("We couldn't load your profile. Please try again.")
+      })
+      .finally(() => {
+        if (isMountedRef.current) {
+          setIsLoading(false)
+        }
+      })
   }, [])
 
+  const retryLoadProfile = useCallback(() => {
+    setIsLoading(true)
+    setError(null)
+    loadProfile()
+  }, [loadProfile])
+
   useEffect(() => {
-    void loadProfile()
+    loadProfile()
   }, [loadProfile])
 
   const handleDeletePersona = useCallback(async () => {
@@ -430,7 +450,7 @@ const ProfilePage = () => {
 
             <p className="mt-3 text-muted-foreground">{error}</p>
 
-            <Button className="mt-6" onClick={() => void loadProfile()}>
+            <Button className="mt-6" onClick={retryLoadProfile}>
               Retry
             </Button>
           </Card>
@@ -629,7 +649,6 @@ const ProfilePage = () => {
                   className="h-full"
                 >
                   <Card className="relative h-full overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated">
-                    {/* TODO: Add navigation to a persona details route when one exists in AppRoutes. */}
                     <PersonaHistorySlider persona={persona} />
 
                     <div className="flex items-end justify-between gap-4 p-4">
@@ -651,52 +670,35 @@ const ProfilePage = () => {
                         </div>
                       </div>
 
-                      <AlertDialog
-                        open={personaIdToDelete === persona.id}
-                        onOpenChange={(open) => {
-                          setPersonaIdToDelete(open ? persona.id : null)
-                        }}
-                      >
-                        <AlertDialogTrigger asChild>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button
                             type="button"
                             size="icon"
                             variant="ghost"
-                            aria-label={`Delete persona ${persona.id}`}
-                            className="shrink-0 text-destructive hover:bg-transparent hover:text-destructive/80"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setPersonaIdToDelete(persona.id)
-                            }}
-                            disabled={isDeletingPersona}
+                            aria-label={`Persona ${persona.id} actions`}
+                            className="shrink-0"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <MoreVertical className="h-5 w-5" />
                           </Button>
-                        </AlertDialogTrigger>
+                        </DropdownMenuTrigger>
 
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this persona?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action will permanently remove the persona and related generated assets, including images, model, instructions and parts data.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setPersonaToView(persona)}>
+                            <Info className="mr-2 h-4 w-4" />
+                            View details
+                          </DropdownMenuItem>
 
-                          <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isDeletingPersona}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={(event) => {
-                                event.preventDefault()
-                                void handleDeletePersona()
-                              }}
-                              disabled={isDeletingPersona}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              {isDeletingPersona ? 'Deleting...' : 'Delete'}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            disabled={isDeletingPersona}
+                            onSelect={() => setPersonaIdToDelete(persona.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </Card>
                 </motion.div>
@@ -780,6 +782,43 @@ const ProfilePage = () => {
             ))}
           </div>
         </section>
+
+        <AlertDialog
+          open={personaIdToDelete !== null}
+          onOpenChange={(open: boolean) => {
+            if (!open) {
+              setPersonaIdToDelete(null)
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this persona?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will permanently remove the persona and related generated assets, including images, model, instructions and parts data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingPersona}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                  event.preventDefault()
+                  void handleDeletePersona()
+                }}
+                disabled={isDeletingPersona}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeletingPersona ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <PersonaDetailModal
+          persona={personaToView}
+          onClose={() => setPersonaToView(null)}
+        />
       </div>
     </div>
   )

@@ -1,15 +1,15 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
-import type { Persona, FilterState, SortOption } from "@/types/persona";
+import { useState, useCallback, useEffect } from "react";
+import type { CommunityPersona, FilterState, FilterOptions, SortOption, PersonaComment } from "@/types/persona";
 import { initialFilters } from "@/types/persona";
 import { LEGO } from "@/lib/legoTheme";
-import { mockPersonas } from "@/data/mockPersonas";
-// חיבור לשרת: בטל הערה כשה-API מוכן
-// import { getGallery, likePersona, unlikePersona, addComment } from "@/services/personaApi";
+import { getGallery, getCommunityFilters, likePersona, unlikePersona, addComment } from "@/services/personaApi";
 import { useAuth } from "@/contexts/AuthContext";
 import FilterSidebar from "@/components/community/FilterSidebar";
 import SortDropdown from "@/components/community/SortDropdown";
 import PostCard from "@/components/community/PostCard";
 import PostDetailModal from "@/components/community/PostDetailModal";
+
+const PAGE_SIZE = 8;
 
 const Stud = ({ color }: { color: string }) => (
   <svg width="34" height="26" viewBox="0 0 34 26">
@@ -21,125 +21,126 @@ const Stud = ({ color }: { color: string }) => (
 
 const CommunityPage = () => {
   const { user } = useAuth();
-  const [personas, setPersonas] = useState<Persona[]>(mockPersonas);
+  const [personas, setPersonas] = useState<CommunityPersona[]>([]);
+  const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [displayCount, setDisplayCount] = useState(8);
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  /* ---- חיבור לשרת (מחליף את הפילטור המקומי כשה-API מוכן) ----
   useEffect(() => {
+    getCommunityFilters()
+      .then(setFilterOptions)
+      .catch((error) => console.error("Failed to load community filters:", error));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
     getGallery({ filters, sortBy, skip: 0, limit: displayCount })
-      .then(({ personas }) => setPersonas(personas))
-      .catch(console.error);
+      .then(({ personas: nextPersonas, total: nextTotal }) => {
+        if (cancelled) return;
+        setPersonas(nextPersonas);
+        setTotal(nextTotal);
+        setLoadFailed(false);
+      })
+      .catch((error) => {
+        console.error("Failed to load community gallery:", error);
+        if (!cancelled) setLoadFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [filters, sortBy, displayCount]);
-  ------------------------------------------------------------- */
 
-  const filteredAndSorted = useMemo(() => {
-    const result = personas.filter((p) => {
-      const a = p.attributes;
-      if (filters.hairColors.length && !filters.hairColors.includes(a.hairColor)) return false;
-      if (filters.hasGlasses !== null && a.hasGlasses !== filters.hasGlasses) return false;
-      if (filters.hasBeard !== null && a.hasBeard !== filters.hasBeard) return false;
-      if (filters.skinTones.length && !filters.skinTones.includes(a.skinTone)) return false;
-      return true;
-    });
-    switch (sortBy) {
-      case "popularity":
-        result.sort((x, y) => y.modules.community.likes - x.modules.community.likes);
-        break;
-      case "most-discussed":
-        result.sort((x, y) => y.modules.community.comments.length - x.modules.community.comments.length);
-        break;
-      default:
-        result.sort(
-          (x, y) => new Date(y.timeStamps.createdAt).getTime() - new Date(x.timeStamps.createdAt).getTime()
-        );
-    }
-    return result;
-  }, [personas, filters, sortBy]);
-
-  const displayed = filteredAndSorted.slice(0, displayCount);
-  const hasMore = displayCount < filteredAndSorted.length;
+  const hasMore = personas.length < total;
 
   const handleScroll = useCallback(() => {
     if (
       window.innerHeight + document.documentElement.scrollTop >=
         document.documentElement.offsetHeight - 500 &&
-      hasMore
+      hasMore &&
+      !isLoading
     ) {
       setDisplayCount((prev) => prev + 4);
     }
-  }, [hasMore]);
+  }, [hasMore, isLoading]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
+  const patchPersona = (personaId: string, patch: (p: CommunityPersona) => CommunityPersona) =>
+    setPersonas((prev) => prev.map((p) => (p.id === personaId ? patch(p) : p)));
+
   const handleLike = (personaId: string) => {
-    // שומרים את המצב לפני העדכון האופטימי — נחוץ לבחירת like/unlike מול השרת
-    const wasLiked = personas.find((x) => x._id === personaId)?.modules.community.isLikedByUser ?? false;
+    const target = personas.find((p) => p.id === personaId);
+    if (!target) return;
+    const wasLiked = target.isLikedByUser;
 
     // עדכון אופטימי בצד לקוח
-    setPersonas((prev) =>
-      prev.map((p) => {
-        if (p._id !== personaId) return p;
-        const com = p.modules.community;
-        return {
-          ...p,
-          modules: {
-            ...p.modules,
-            community: {
-              ...com,
-              likes: com.isLikedByUser ? com.likes - 1 : com.likes + 1,
-              isLikedByUser: !com.isLikedByUser,
-            },
-          },
-        };
-      })
-    );
+    patchPersona(personaId, (p) => ({
+      ...p,
+      likes: wasLiked ? p.likes - 1 : p.likes + 1,
+      isLikedByUser: !wasLiked,
+    }));
 
-    // חיבור לשרת:
-    // const action = wasLiked ? unlikePersona : likePersona;
-    // action(personaId).catch(console.error);
-    void wasLiked; // מונע אזהרת unused עד חיבור השרת — מחק שורה זו כשמבטלים את ההערה
+    const action = wasLiked ? unlikePersona : likePersona;
+    action(personaId)
+      .then((result) => {
+        patchPersona(personaId, (p) => ({ ...p, likes: result.likes, isLikedByUser: result.isLikedByUser }));
+      })
+      .catch((error) => {
+        console.error("Failed to update like:", error);
+        // מחזירים את המצב הקודם אם השרת נכשל
+        patchPersona(personaId, (p) => ({
+          ...p,
+          likes: wasLiked ? p.likes + 1 : p.likes - 1,
+          isLikedByUser: wasLiked,
+        }));
+      });
   };
 
   const handleComment = (personaId: string, text: string) => {
     if (!user) return;
-    
-    setPersonas((prev) =>
-      prev.map((p) => {
-        if (p._id !== personaId) return p;
-        const com = p.modules.community;
-        return {
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticComment: PersonaComment = {
+      id: tempId,
+      userId: user.userId,
+      username: user.username,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+
+    // עדכון אופטימי בצד לקוח
+    patchPersona(personaId, (p) => ({ ...p, comments: [...p.comments, optimisticComment] }));
+
+    addComment(personaId, text)
+      .then((comment) => {
+        patchPersona(personaId, (p) => ({
           ...p,
-          modules: {
-            ...p.modules,
-            community: {
-              ...com,
-              comments: [
-                ...com.comments,
-                {
-                  _id: `c-${Date.now()}`,
-                  user_id: user.userId,
-                  username: user.username,
-                  text,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            },
-          },
-        };
+          comments: p.comments.map((c) => (c.id === tempId ? comment : c)),
+        }));
       })
-    );
-    // חיבור לשרת:
-    // addComment(personaId, text).catch(console.error);
+      .catch((error) => {
+        console.error("Failed to add comment:", error);
+        patchPersona(personaId, (p) => ({
+          ...p,
+          comments: p.comments.filter((c) => c.id !== tempId),
+        }));
+      });
   };
 
-  const selectedPersona = personas.find((p) => p._id === selectedId) ?? null;
+  const selectedPersona = personas.find((p) => p.id === selectedId) ?? null;
 
   const activeFilterCount =
     filters.hairColors.length +
@@ -148,7 +149,8 @@ const CommunityPage = () => {
     (filters.hasBeard !== null ? 1 : 0);
 
   return (
-  <div className="min-h-screen pt-20" style={{ background: "#FAFAF7", fontFamily: "'Nunito', sans-serif" }}>      <header
+    <div className="min-h-screen pt-20" style={{ background: "#FAFAF7", fontFamily: "'Nunito', sans-serif" }}>
+      <header
         className="text-center py-12 px-4"
         style={{ background: "linear-gradient(120deg, #FDECEC, #FFF9DE, #E9F3FB)" }}
       >
@@ -166,15 +168,20 @@ const CommunityPage = () => {
         <p className="text-gray-600 max-w-md mx-auto mb-3">
           Explore amazing LEGO Personas created by our community. Like, comment, and get inspired!
         </p>
-        <div className="text-sm text-gray-500">👥 {personas.length} creations shared</div>
+        <div className="text-sm text-gray-500">👥 {total} creations shared</div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6">
-<div className="hidden lg:block">
-          <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
+        <div className="hidden lg:block">
+          <FilterSidebar
+            filters={filters}
+            setFilters={setFilters}
+            options={filterOptions}
+            onReset={() => setFilters(initialFilters)}
+          />
         </div>
         <section className="flex-1">
-<div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <button
                 className="lg:hidden flex items-center gap-2 border rounded-2xl px-4 py-2 text-sm font-bold bg-white"
@@ -189,13 +196,28 @@ const CommunityPage = () => {
                 )}
               </button>
               <div className="text-sm">
-                <b style={{ color: LEGO.red }}>{filteredAndSorted.length}</b> results
+                <b style={{ color: LEGO.red }}>{total}</b> results
               </div>
             </div>
             <SortDropdown value={sortBy} onChange={setSortBy} />
           </div>
 
-          {displayed.length === 0 ? (
+          {loadFailed ? (
+            <div className="bg-white rounded-2xl p-10 text-center text-gray-500">
+              Something went wrong loading the community gallery.{" "}
+              <button
+                className="font-bold underline"
+                onClick={() => {
+                  setLoadFailed(false);
+                  setFilters((f) => ({ ...f })); // מפעיל מחדש את ה-useEffect של הטעינה
+                }}
+              >
+                Try again
+              </button>
+            </div>
+          ) : isLoading && personas.length === 0 ? (
+            <div className="bg-white rounded-2xl p-10 text-center text-gray-400">Loading personas...</div>
+          ) : personas.length === 0 ? (
             <div className="bg-white rounded-2xl p-10 text-center text-gray-500">
               No personas match these filters.{" "}
               <button className="font-bold underline" onClick={() => setFilters(initialFilters)}>
@@ -203,16 +225,16 @@ const CommunityPage = () => {
               </button>
             </div>
           ) : (
-<div className="columns-1 sm:columns-2 xl:columns-3 gap-5 space-y-5">
-              {displayed.map((p) => (
-                <div key={p._id} className="break-inside-avoid">
-                  <PostCard persona={p} onLike={handleLike} onOpen={(pp) => setSelectedId(pp._id)} />
+            <div className="columns-1 sm:columns-2 xl:columns-3 gap-5 space-y-5">
+              {personas.map((p) => (
+                <div key={p.id} className="break-inside-avoid">
+                  <PostCard persona={p} onLike={handleLike} onOpen={(pp) => setSelectedId(pp.id)} />
                 </div>
               ))}
             </div>
           )}
 
-{hasMore && (
+          {hasMore && !loadFailed && (
             <div className="text-center py-8">
               <div className="flex justify-center gap-2 mb-2">
                 <Stud color={LEGO.red} />
@@ -221,10 +243,11 @@ const CommunityPage = () => {
               </div>
               <p className="text-gray-400 text-sm">Loading more...</p>
             </div>
-          )}        </section>
+          )}
+        </section>
       </main>
 
- {filterSidebarOpen && (
+      {filterSidebarOpen && (
         <div
           className="fixed inset-0 z-50 lg:hidden"
           style={{ background: "rgba(0,0,0,0.45)" }}
@@ -241,29 +264,12 @@ const CommunityPage = () => {
             >
               ×
             </button>
-            <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
-          </div>
-        </div>
-      )}
-
-{filterSidebarOpen && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden"
-          style={{ background: "rgba(0,0,0,0.45)" }}
-          onClick={() => setFilterSidebarOpen(false)}
-        >
-          <div
-            className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white p-4 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="mb-2 text-gray-400 hover:text-gray-800 text-2xl leading-none"
-              onClick={() => setFilterSidebarOpen(false)}
-              aria-label="Close filters"
-            >
-              ×
-            </button>
-            <FilterSidebar filters={filters} setFilters={setFilters} onReset={() => setFilters(initialFilters)} />
+            <FilterSidebar
+              filters={filters}
+              setFilters={setFilters}
+              options={filterOptions}
+              onReset={() => setFilters(initialFilters)}
+            />
           </div>
         </div>
       )}

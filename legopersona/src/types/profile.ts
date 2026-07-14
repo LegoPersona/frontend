@@ -21,6 +21,8 @@ export interface ProfilePersona {
   partsCount: number
   originalImageUrl: string | null
   legoImageUrl: string | null
+  likesCount: number
+  commentsCount: number
 }
 
 export interface ProfileAchievement {

@@ -40,62 +40,55 @@ export interface PersonaDocument {
   originalImage?: string | null;
 }
 
-export type HairColor =
-  | "black" | "brown" | "blonde" | "red" | "gray" | "white" | "bald";
-
-export type SkinTone = "light" | "medium" | "dark";
-
-export interface PersonaAttributes {
-  hairColor: HairColor;
-  hasGlasses: boolean;
-  hasBeard: boolean;
-  beardColor: HairColor | null;
-  skinTone: SkinTone;
+export interface CommunityUser {
+  id: string;
+  username: string;
+  profileImageUrl: string | null;
 }
 
 export interface PersonaComment {
-  _id: string;
-  user_id: string;
+  id: string;
+  userId: string;
   username: string;
   text: string;
   createdAt: string; // ISO string
 }
 
-export interface CommunityModule {
+export interface CommunityPersona {
+  id: string;
+  user: CommunityUser;
+  createdAt: string; // ISO string
+  legoImageUrl: string | null;
+  originalImageUrl: string | null;
+  tags: string[];
   likes: number;
   isLikedByUser: boolean;
   comments: PersonaComment[];
 }
 
+export interface FilterColorOption {
+  legoColorId: number;
+  name: string;
+  hex: string;
+}
+
+export interface FilterOptions {
+  hairColors: FilterColorOption[];
+  skinTones: FilterColorOption[];
+}
+
 export interface FilterState {
-  hairColors: HairColor[];
+  hairColors: number[]; // legoColorIds
+  skinTones: number[]; // legoColorIds
   hasGlasses: boolean | null;
   hasBeard: boolean | null;
-  skinTones: SkinTone[];
 }
 
 export type SortOption = "newest" | "popularity" | "most-discussed";
 
 export const initialFilters: FilterState = {
   hairColors: [],
+  skinTones: [],
   hasGlasses: null,
   hasBeard: null,
-  skinTones: [],
-};
-
-export interface Persona {
-  _id: string;
-  user_id: string;
-  username?: string; // מגיע מ-lookup עם קולקציית המשתמשים
-  attributes: PersonaAttributes;
-  modules: {
-    community: CommunityModule;
-    [key: string]: unknown;
-  };
-  image: string | null;
-  partsJson: PersonaPart[];
-  timeStamps: {
-    createdAt: string;
-    updatedAt: string;
-  };
 };

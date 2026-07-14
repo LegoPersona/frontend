@@ -27,7 +27,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/auth" element={<GuestOnlyRoute><AuthPage /></GuestOnlyRoute>} />
-      <Route path="/community" element={<CommunityPage />} />
+      <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
       <Route path="/parts-guide" element={<PartsGuidePage />} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/create" element={<ProtectedRoute><CreatePage /></ProtectedRoute>} />

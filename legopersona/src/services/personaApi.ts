@@ -1,6 +1,6 @@
 import api from './api';
 import type { PersonaDocument } from '@/types/persona';
-import type { Persona, FilterState, SortOption } from "@/types/persona";
+import type { CommunityPersona, FilterOptions, FilterState, PersonaComment, SortOption } from "@/types/persona";
 
 export type { PersonaDocument };
 
@@ -93,13 +93,18 @@ export interface GalleryQuery {
 };
 
 export interface GalleryResponse {
-  personas: Persona[];
+  personas: CommunityPersona[];
   total: number;
 };
 
-// GET /personas?sort=newest&skip=0&limit=8&hairColors=brown,black
+export interface LikeResponse {
+  likes: number;
+  isLikedByUser: boolean;
+};
+
+// GET /community?sort=newest&skip=0&limit=8&hairColors=6,70&skinTones=19&hasGlasses=true
 export const getGallery = async (q: GalleryQuery): Promise<GalleryResponse> => {
-  const response = await api.get('/personas', {
+  const response = await api.get('/community', {
     params: {
       sort: q.sortBy,
       skip: q.skip,
@@ -110,22 +115,43 @@ export const getGallery = async (q: GalleryQuery): Promise<GalleryResponse> => {
       hasBeard: q.filters.hasBeard ?? undefined,
     },
   });
-  return response.data as GalleryResponse;
+  const data = response.data as GalleryResponse;
+  return {
+    total: data.total,
+    personas: data.personas.map((persona) => ({
+      ...persona,
+      legoImageUrl: resolveAssetUrl(persona.legoImageUrl),
+      originalImageUrl: resolveAssetUrl(persona.originalImageUrl),
+      user: {
+        ...persona.user,
+        profileImageUrl: resolveAssetUrl(persona.user.profileImageUrl),
+      },
+    })),
+  };
 };
 
-// POST /personas/:id/like
-export const likePersona = async (personaId: string): Promise<void> => {
-  await api.post(`/personas/${personaId}/like`);
+// GET /community/filters
+export const getCommunityFilters = async (): Promise<FilterOptions> => {
+  const response = await api.get('/community/filters');
+  return response.data as FilterOptions;
 };
 
-// DELETE /personas/:id/like
-export const unlikePersona = async (personaId: string): Promise<void> => {
-  await api.delete(`/personas/${personaId}/like`);
+// POST /community/:id/like
+export const likePersona = async (personaId: string): Promise<LikeResponse> => {
+  const response = await api.post(`/community/${personaId}/like`);
+  return response.data as LikeResponse;
 };
 
-// POST /personas/:id/comments
-export const addComment = async (personaId: string, text: string): Promise<void> => {
-  await api.post(`/personas/${personaId}/comments`, { text });
+// DELETE /community/:id/like
+export const unlikePersona = async (personaId: string): Promise<LikeResponse> => {
+  const response = await api.delete(`/community/${personaId}/like`);
+  return response.data as LikeResponse;
+};
+
+// POST /community/:id/comments
+export const addComment = async (personaId: string, text: string): Promise<PersonaComment> => {
+  const response = await api.post(`/community/${personaId}/comments`, { text });
+  return response.data as PersonaComment;
 };
 
 //DELETE /personas/:personaId

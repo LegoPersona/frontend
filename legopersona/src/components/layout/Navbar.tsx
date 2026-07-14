@@ -17,7 +17,8 @@ const Navbar = () => {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const isHome = location.pathname === '/' || location.pathname === '/auth'
+  // The auth page is the login screen itself, so it never shows a Login button.
+  const isAuthPage = location.pathname === '/auth'
 
   const { isRunning, isReady, isFailed, progress } = usePersonaGeneration()
   const onCreatePage = location.pathname === '/create'
@@ -67,24 +68,26 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/community">
-              <Button
-                variant="ghost"
-                className={cn('gap-2', location.pathname === '/community' && 'bg-muted')}
-              >
-                <Users className="w-4 h-4" />
-                Community
-              </Button>
-            </Link>
-            <Link to="/create">
-              <Button className="gap-2 shadow-lego">
-                {createButtonContent}
-              </Button>
-            </Link>
             {isAuthenticated ? (
-              <UserMenu />
+              <>
+                <Link to="/community">
+                  <Button
+                    variant="ghost"
+                    className={cn('gap-2', location.pathname === '/community' && 'bg-muted')}
+                  >
+                    <Users className="w-4 h-4" />
+                    Community
+                  </Button>
+                </Link>
+                <Link to="/create">
+                  <Button className="gap-2 shadow-lego">
+                    {createButtonContent}
+                  </Button>
+                </Link>
+                <UserMenu />
+              </>
             ) : (
-              !isHome && (
+              !isAuthPage && (
                 <Link to="/auth">
                   <Button variant="default">Login</Button>
                 </Link>
@@ -120,19 +123,19 @@ const Navbar = () => {
             className="md:hidden bg-card border-b border-border overflow-hidden"
           >
             <div className="container mx-auto px-6 py-5 flex flex-col gap-4">
-              <Link to="/community" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" className="w-full justify-start gap-2">
-                  <Users className="w-4 h-4" />
-                  Community
-                </Button>
-              </Link>
-              <Link to="/create" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full justify-start gap-2 shadow-lego">
-                  {createButtonContent}
-                </Button>
-              </Link>
               {isAuthenticated ? (
                 <>
+                  <Link to="/community" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <Users className="w-4 h-4" />
+                      Community
+                    </Button>
+                  </Link>
+                  <Link to="/create" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full justify-start gap-2 shadow-lego">
+                      {createButtonContent}
+                    </Button>
+                  </Link>
                   <Separator />
                   <div className="flex items-center gap-3 px-4">
                     <Avatar className="h-8 w-8">

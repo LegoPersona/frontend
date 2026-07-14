@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, Re
 
 import { cancelGeneration, getGenerationStatus, uploadImage } from '@/services/personaApi'
 import { useRateLimit } from '@/contexts/RateLimitContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 const ACTIVE_JOB_KEY = 'activeGenerationJobId'
 
@@ -26,6 +27,7 @@ const PersonaGenerationContext = createContext<PersonaGenerationContextType | un
 
 export const PersonaGenerationProvider = ({ children }: { children: ReactNode }) => {
   const { refresh: refreshRateLimit } = useRateLimit()
+  const { user } = useAuth()
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -85,6 +87,17 @@ export const PersonaGenerationProvider = ({ children }: { children: ReactNode })
     setResultPersonaId(null)
     setError(null)
   }, [clearPolling])
+
+  // Pipeline state (progress, "Persona ready!") belongs to the user who started it —
+  // wipe it when that user logs out so the next login starts clean.
+  const previousUserIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const currentUserId = user?.userId ?? null
+    if (previousUserIdRef.current !== null && previousUserIdRef.current !== currentUserId) {
+      reset()
+    }
+    previousUserIdRef.current = currentUserId
+  }, [user, reset])
 
   const startGeneration = useCallback(async () => {
     if (!selectedFile) return
