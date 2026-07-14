@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -13,8 +13,47 @@ function AuthPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { login, register } = useAuth()
+  const { login, register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
+  const googleButtonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) return
+
+    const initGoogle = () => {
+      if (!window.google || !googleButtonRef.current) return
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            await loginWithGoogle(response.credential)
+            navigate('/')
+          } catch (err) {
+            console.error('Google sign-in failed:', err)
+            setError('Google sign-in failed. Please try again.')
+          }
+        },
+      })
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width: 320,
+      })
+    }
+
+    if (window.google) {
+      initGoogle()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.onload = initGoogle
+    script.onerror = () => console.error('Failed to load Google sign-in script')
+    document.head.appendChild(script)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +113,12 @@ function AuthPage() {
             {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </Button>
         </form>
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div ref={googleButtonRef} className="flex justify-center" />
         <p className="mt-4 text-center text-sm text-muted-foreground">
           {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
           <button

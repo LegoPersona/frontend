@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
+  loginWithGoogle: (credential: string) => Promise<void>
   register: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -45,6 +46,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(me.data)
   }
 
+  const loginWithGoogle = async (credential: string) => {
+    const { data } = await authApi.googleLogin(credential)
+    localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
+    const me = await authApi.getMe()
+    setUser(me.data)
+  }
+
   const register = async (username: string, password: string) => {
     const { data } = await authApi.register(username, password)
     localStorage.setItem('accessToken', data.accessToken)
@@ -64,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, loginWithGoogle, register, logout }}>
       {children}
     </AuthContext.Provider>
   )

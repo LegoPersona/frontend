@@ -17,6 +17,9 @@ export const authApi = {
   login: (username: string, password: string) =>
     api.post<AuthTokens>('/auth/login', { username, password }),
 
+  googleLogin: (credential: string) =>
+    api.post<AuthTokens>('/auth/google', { credential }),
+
   refresh: (refreshToken: string) =>
     api.post<AuthTokens>('/auth/refresh', { refreshToken }),
 
