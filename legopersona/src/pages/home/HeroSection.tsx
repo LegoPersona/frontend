@@ -4,6 +4,8 @@ import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import LegoBrick from '@/components/persona/LegoBrick'
 import BeforeAfterSlider from './BeforeAfterSlider'
+import exampleOriginal from '@/assets/example-original.png'
+import exampleLego from '@/assets/example-lego.png'
 
 function HeroSection() {
   return (
@@ -15,12 +17,17 @@ function HeroSection() {
           transition={{ duration: 0.5 }}
         >
           <h1 className="font-display text-4xl leading-tight md:text-6xl">
-            Turn yourself into a <span className="text-primary">buildable LEGO model</span>
+            Turn yourself into a{' '}
+            <span className="text-primary">
+              buildable LEGO model
+            </span>
           </h1>
+
           <p className="mt-4 max-w-md text-lg text-muted-foreground">
-            Upload a photo — our AI designs a brick-by-brick you, with building
-            instructions and a parts list.
+            Upload a photo — our AI designs a brick-by-brick you, with
+            building instructions and a parts list.
           </p>
+
           <Link to="/create" className="mt-8 inline-block">
             <Button size="lg" className="gap-2 text-lg">
               Create yours
@@ -36,12 +43,26 @@ function HeroSection() {
           className="relative mx-auto w-full max-w-sm"
         >
           <div className="absolute -left-8 -top-10 -rotate-12">
-            <LegoBrick color="yellow" size="sm" studs={2} animate />
+            <LegoBrick
+              color="yellow"
+              size="sm"
+              studs={2}
+              animate
+            />
           </div>
+
           <div className="absolute -bottom-8 -right-6 rotate-6">
-            <LegoBrick color="blue" size="md" animate />
+            <LegoBrick
+              color="blue"
+              size="md"
+              animate
+            />
           </div>
-          <BeforeAfterSlider />
+
+          <BeforeAfterSlider
+            originalImage={exampleOriginal}
+            legoImage={exampleLego}
+          />
         </motion.div>
       </div>
     </section>

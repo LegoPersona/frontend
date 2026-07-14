@@ -102,3 +102,8 @@ export const unlikePersona = async (personaId: string): Promise<void> => {
 export const addComment = async (personaId: string, text: string): Promise<void> => {
   await api.post(`/personas/${personaId}/comments`, { text });
 };
+
+//DELETE /personas/:personaId
+export const deletePersona = async (personaId: string): Promise<void> => {
+  await api.delete(`/personas/${personaId}`);
+};
