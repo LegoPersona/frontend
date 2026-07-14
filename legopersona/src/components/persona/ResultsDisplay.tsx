@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPersona, getPersonaImage } from '@/services/personaApi';
@@ -118,6 +119,14 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, personaId }: ResultsDi
         <DownloadInstructionsButton personaId={personaId} />
         <DownloadLegoPartsButton personaId={personaId} />
       </motion.div>
+
+      {/* Guide link */}
+      <p className="text-center text-sm text-muted-foreground">
+        Want to order these bricks?{' '}
+        <Link to="/parts-guide" className="font-semibold text-primary underline underline-offset-2">
+          See how to use the parts file on LEGO Pick a Brick
+        </Link>
+      </p>
 
       {/* Create another */}
       <div className="text-center pt-4">
