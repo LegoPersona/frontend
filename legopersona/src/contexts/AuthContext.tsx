@@ -4,6 +4,7 @@ import { authApi } from '@/services/authApi'
 interface User {
   userId: string
   username: string
+  profileImageUrl?: string | null
 }
 
 interface AuthContextType {
@@ -13,6 +14,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   register: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  updateUser: (nextUser: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -63,8 +65,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null)
   }
 
+  const updateUser = (nextUser: Partial<User>) => {
+    setUser((previousUser) => {
+      if (!previousUser) {
+        return previousUser
+      }
+
+      return {
+        ...previousUser,
+        ...nextUser,
+      }
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )
