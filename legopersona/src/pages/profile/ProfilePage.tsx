@@ -24,7 +24,6 @@ import { Plus, Calendar, Boxes, Trophy, Trash2, Pencil, Camera, Save, X } from '
 import { profileApi } from '@/services/profileApi'
 import { deletePersona } from '@/services/personaApi'
 import { toast } from '@/components/ui/use-toast'
-import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage'
 import type {
   ProfileAchievement,
   ProfilePersona,
@@ -98,35 +97,13 @@ const getUpdateProfileErrorMessage = (error: unknown): string => {
 }
 
 const PersonaHistorySlider = ({ persona }: { persona: ProfilePersona }) => {
-  const {
-    imageUrl: originalImage,
-    isLoading: isOriginalImageLoading,
-    errorStatus: originalImageErrorStatus,
-  } = useAuthenticatedImage(persona.originalImageUrl)
-  const { imageUrl: legoImage } = useAuthenticatedImage(persona.legoImageUrl)
-
-  const shouldShowOriginalLoading =
-    Boolean(persona.originalImageUrl) &&
-    isOriginalImageLoading
-
-  const shouldFallbackOriginalImage =
-    !persona.originalImageUrl ||
-    originalImageErrorStatus === 404
-
-  if (shouldShowOriginalLoading) {
-    return (
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl bg-muted">
-        <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-muted-foreground">
-          Loading original image...
-        </div>
-      </div>
-    )
-  }
-
+  // Images are publicly served static files, so the URLs can be used directly;
+  // the backend sends null when an image is unavailable and BeforeAfterSlider
+  // renders the appropriate fallback.
   return (
     <BeforeAfterSlider
-      originalImage={shouldFallbackOriginalImage ? null : originalImage}
-      legoImage={legoImage}
+      originalImage={persona.originalImageUrl}
+      legoImage={persona.legoImageUrl}
       originalAlt="Original uploaded photo"
       legoAlt="Generated LEGO Persona"
       compact
@@ -221,10 +198,6 @@ const ProfilePage = () => {
   const isMountedRef = useRef(true)
   const profileImageInputRef = useRef<HTMLInputElement | null>(null)
   const savedProfileImageUrl = profile?.user.profileImageUrl ?? null
-  const {
-    imageUrl: authenticatedProfileImageUrl,
-    isLoading: isProfileImageLoading,
-  } = useAuthenticatedImage(savedProfileImageUrl)
 
   useEffect(() => {
     return () => {
@@ -249,7 +222,6 @@ const ProfilePage = () => {
 
   const resolvedHeaderProfileImage =
     selectedLocalPreview
-    ?? authenticatedProfileImageUrl
     ?? savedProfileImageUrl
     ?? null
 
@@ -524,10 +496,6 @@ const ProfilePage = () => {
                 />
               ) : (
                 <span className="text-4xl">🧱</span>
-              )}
-
-              {isProfileImageLoading && !selectedLocalPreview && (
-                <span className="absolute inset-0 bg-background/40" aria-hidden="true" />
               )}
 
               {isEditing && (

@@ -29,14 +29,6 @@ vi.mock('@/components/ui/use-toast', () => ({
   toast: vi.fn(),
 }))
 
-vi.mock('@/hooks/useAuthenticatedImage', () => ({
-  useAuthenticatedImage: (path: string | null) => ({
-    imageUrl: path,
-    isLoading: false,
-    errorStatus: null,
-  }),
-}))
-
 const { profileApi } = await import('@/services/profileApi')
 const { deletePersona } = await import('@/services/personaApi')
 const { toast } = await import('@/components/ui/use-toast')
