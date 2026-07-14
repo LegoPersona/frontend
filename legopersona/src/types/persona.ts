@@ -34,4 +34,8 @@ export interface PersonaDocument {
   modules: Record<string, { file_name: string; color: number }>;
   partsJson?: PersonaPart[];
   createdAt: string;
+  /** Absolute URL to the generated LEGO persona image (publicly served). Null if not available. */
+  personaImage?: string | null;
+  /** Absolute URL to the original uploaded image (publicly served). Null if not available. */
+  originalImage?: string | null;
 }

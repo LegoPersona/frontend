@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getPersona, getPersonaImage } from '@/services/personaApi';
+import { getPersona } from '@/services/personaApi';
 import legoPersona from '@/assets/lego-persona.jpeg';
 import type { PersonaPart } from '@/types/persona';
 import DownloadInstructionsButton from './DownloadInstructionsButton';
@@ -21,10 +21,7 @@ const ResultsDisplay = ({ originalImage, onCreateAnother, personaId }: ResultsDi
     queryFn: () => getPersona(personaId),
   });
 
-  const { data: personaImageSrc = legoPersona } = useQuery({
-    queryKey: ['persona-image', personaId],
-    queryFn: () => getPersonaImage(personaId),
-  });
+  const personaImageSrc = persona?.personaImage ?? legoPersona;
   const parts: PersonaPart[] = persona?.partsJson ?? [];
 
   return (
