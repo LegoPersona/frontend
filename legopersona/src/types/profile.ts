@@ -2,6 +2,11 @@ export interface ProfileUser {
   id: string
   username: string
   email?: string | null
+  profileImageUrl: string | null
+}
+
+export interface UpdateProfileResponse {
+  user: ProfileUser
 }
 
 export interface ProfileStats {

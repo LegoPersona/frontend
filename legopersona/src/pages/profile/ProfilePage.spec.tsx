@@ -10,12 +10,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { userId: 'user-1', username: 'auth-user' },
+    updateUser: vi.fn(),
   }),
 }))
 
 vi.mock('@/services/profileApi', () => ({
   profileApi: {
     getProfile: vi.fn(),
+    updateProfile: vi.fn(),
   },
 }))
 
@@ -25,6 +27,14 @@ vi.mock('@/services/personaApi', () => ({
 
 vi.mock('@/components/ui/use-toast', () => ({
   toast: vi.fn(),
+}))
+
+vi.mock('@/hooks/useAuthenticatedImage', () => ({
+  useAuthenticatedImage: (path: string | null) => ({
+    imageUrl: path,
+    isLoading: false,
+    errorStatus: null,
+  }),
 }))
 
 const { profileApi } = await import('@/services/profileApi')
@@ -44,6 +54,7 @@ const createProfileResponse = (overrides?: Partial<ProfileResponse>): ProfileRes
     id: 'user-1',
     username: 'ofek_morali',
     email: 'ofek@example.com',
+    profileImageUrl: null,
   },
   stats: {
     personasCount: 2,
@@ -259,4 +270,47 @@ describe('ProfilePage', () => {
     const brokenImage = container.querySelector('img[src="null"]')
     expect(brokenImage).not.toBeInTheDocument()
   })
+
+  it('enters edit mode when clicking the pencil button', async () => {
+    ;(profileApi.getProfile as Mock).mockResolvedValue(createProfileResponse())
+
+    renderProfilePage()
+
+    await screen.findByText('ofek_morali')
+    await userEvent.click(screen.getByRole('button', { name: 'Edit profile' }))
+
+    expect(screen.getByRole('textbox', { name: 'Username' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+  })
+
+  it('saves username update and exits edit mode', async () => {
+    ;(profileApi.getProfile as Mock).mockResolvedValue(createProfileResponse())
+    ;(profileApi.updateProfile as Mock).mockResolvedValue({
+      user: {
+        id: 'user-1',
+        username: 'updated_user',
+        email: 'ofek@example.com',
+        profileImageUrl: null,
+      },
+    })
+
+    renderProfilePage()
+
+    await screen.findByText('ofek_morali')
+    await userEvent.click(screen.getByRole('button', { name: 'Edit profile' }))
+
+    const usernameInput = screen.getByRole('textbox', { name: 'Username' })
+    await userEvent.clear(usernameInput)
+    await userEvent.type(usernameInput, '  updated_user  ')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(profileApi.updateProfile).toHaveBeenCalledWith({
+      username: 'updated_user',
+      profileImage: null,
+    })
+    expect(await screen.findByText('updated_user')).toBeInTheDocument()
+  })
 })
+    
