@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { ChevronDown, LogOut, User } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRateLimit } from '@/contexts/RateLimitContext'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,14 @@ const UserMenu = () => {
       <DropdownMenuTrigger className="ml-4 flex items-center gap-1 rounded-full outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring">
         <div className="relative">
           <Avatar className="h-9 w-9">
+            {user.profileImageUrl && (
+              <AvatarImage
+                src={user.profileImageUrl}
+                alt={user.username}
+                referrerPolicy="no-referrer"
+                className="object-cover"
+              />
+            )}
             <AvatarFallback className="bg-primary/10 font-display font-bold text-primary">
               {user.username.charAt(0).toUpperCase()}
             </AvatarFallback>
