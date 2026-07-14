@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Camera } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,11 +12,14 @@ function AuthPage() {
   const [mode, setMode] = useState<Mode>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [profileImage, setProfileImage] = useState<File | null>(null)
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { login, register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const googleButtonRef = useRef<HTMLDivElement>(null)
+  const profileImageInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -55,6 +59,26 @@ function AuthPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const clearProfileImage = () => {
+    setProfileImage(null)
+    setProfileImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    if (profileImageInputRef.current) {
+      profileImageInputRef.current.value = ''
+    }
+  }
+
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setProfileImage(file)
+    setProfileImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return file ? URL.createObjectURL(file) : null
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -63,7 +87,7 @@ function AuthPage() {
       if (mode === 'login') {
         await login(username, password)
       } else {
-        await register(username, password)
+        await register(username, password, profileImage)
       }
       navigate('/')
     } catch (err: any) {
@@ -78,6 +102,7 @@ function AuthPage() {
     setError('')
     setUsername('')
     setPassword('')
+    clearProfileImage()
   }
 
   return (
@@ -108,6 +133,58 @@ function AuthPage() {
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
           </div>
+          {mode === 'register' && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="profileImage">Profile picture (optional)</Label>
+              <input
+                ref={profileImageInputRef}
+                id="profileImage"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleProfileImageChange}
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => profileImageInputRef.current?.click()}
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-secondary transition-colors hover:border-primary ${
+                    profileImagePreview ? 'border-border' : 'border-dashed border-border'
+                  }`}
+                >
+                  {profileImagePreview ? (
+                    <img
+                      src={profileImagePreview}
+                      alt="Profile preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </button>
+                <div className="flex flex-col items-start gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => profileImageInputRef.current?.click()}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {profileImage ? 'Change photo' : 'Upload photo'}
+                  </button>
+                  {profileImage ? (
+                    <button
+                      type="button"
+                      onClick={clearProfileImage}
+                      className="text-xs text-muted-foreground transition-colors hover:text-destructive"
+                    >
+                      Remove
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">JPG, PNG or WEBP</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}

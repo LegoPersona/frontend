@@ -8,11 +8,23 @@ interface AuthTokens {
 interface MeResponse {
   userId: string
   username: string
+  profileImageUrl: string | null
 }
 
 export const authApi = {
-  register: (username: string, password: string) =>
-    api.post<AuthTokens>('/auth/register', { username, password }),
+  register: (username: string, password: string, profileImage?: File | null) => {
+    const formData = new FormData()
+    formData.append('username', username)
+    formData.append('password', password)
+    if (profileImage) {
+      formData.append('profileImage', profileImage)
+    }
+    return api.post<AuthTokens>('/auth/register', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 
   login: (username: string, password: string) =>
     api.post<AuthTokens>('/auth/login', { username, password }),

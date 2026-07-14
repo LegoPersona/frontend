@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import AuthPage from '@/pages/auth/AuthPage'
 import CommunityPage from '@/pages/community/CommunityPage'
 import CreatePage from '@/pages/create/CreatePage'
+import PartsGuidePage from '@/pages/guide/PartsGuidePage'
 import HomePage from '@/pages/home/HomePage'
 import ProfilePage from '@/pages/profile/ProfilePage'
 
@@ -27,6 +28,7 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/auth" element={<GuestOnlyRoute><AuthPage /></GuestOnlyRoute>} />
       <Route path="/community" element={<CommunityPage />} />
+      <Route path="/parts-guide" element={<PartsGuidePage />} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/create" element={<ProtectedRoute><CreatePage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
