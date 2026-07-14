@@ -58,6 +58,7 @@ export const getPersonaInstructions = async (personaId: string): Promise<string>
 export const getPersonaLegoPartsJson = async (personaId: string): Promise<string> => {
   const response = await api.get(`/personas/${personaId}/legoPartsJson`, { responseType: 'blob' });
   return URL.createObjectURL(response.data as Blob);
+};
 
 export interface GalleryQuery {
   filters: FilterState;
