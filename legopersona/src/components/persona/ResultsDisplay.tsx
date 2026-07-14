@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { getPersona } from '@/services/personaApi';
 import legoPersona from '@/assets/lego-persona.jpeg';
 import type { PersonaPart } from '@/types/persona';
-import DownloadInstructionsButton from './DownloadInstructionsButton';
-import DownloadLegoPartsButton from './DownloadLegoPartsButton';
+import { DownloadInstructionsButton, DownloadLegoPartsButton } from './DownloadButtons';
 
 interface ResultsDisplayProps {
   originalImage: string;

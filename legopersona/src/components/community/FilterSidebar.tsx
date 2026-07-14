@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction, ReactNode } from "react";
-import type { FilterState, HairColor, SkinTone } from "@/types/persona";
-import { LEGO, HAIR_HEX, SKIN_HEX, HAIR_OPTIONS, SKIN_OPTIONS } from "@/lib/legoTheme";
+import type { FilterState, FilterOptions } from "@/types/persona";
+import { LEGO } from "@/lib/legoTheme";
 
 interface ChipProps {
   active: boolean;
@@ -41,24 +41,15 @@ const Section = ({ title, children }: { title: string; children: ReactNode }) =>
 interface Props {
   filters: FilterState;
   setFilters: Dispatch<SetStateAction<FilterState>>;
+  options: FilterOptions | null;
   onReset: () => void;
 }
 
-const FilterSidebar = ({ filters, setFilters, onReset }: Props) => {
-  const toggleHair = (value: HairColor) =>
+const FilterSidebar = ({ filters, setFilters, options, onReset }: Props) => {
+  const toggleColor = (key: "hairColors" | "skinTones", id: number) =>
     setFilters((f) => ({
       ...f,
-      hairColors: f.hairColors.includes(value)
-        ? f.hairColors.filter((v) => v !== value)
-        : [...f.hairColors, value],
-    }));
-
-  const toggleSkin = (value: SkinTone) =>
-    setFilters((f) => ({
-      ...f,
-      skinTones: f.skinTones.includes(value)
-        ? f.skinTones.filter((v) => v !== value)
-        : [...f.skinTones, value],
+      [key]: f[key].includes(id) ? f[key].filter((v) => v !== id) : [...f[key], id],
     }));
 
   const tri = (key: "hasGlasses" | "hasBeard", value: boolean) =>
@@ -75,13 +66,20 @@ const FilterSidebar = ({ filters, setFilters, onReset }: Props) => {
         </button>
       </div>
 
-      <Section title="Hair Color">
-        {HAIR_OPTIONS.map((h) => (
-          <Chip key={h} active={filters.hairColors.includes(h)} onClick={() => toggleHair(h)} swatch={HAIR_HEX[h] ?? "#FFD500"}>
-            {h[0].toUpperCase() + h.slice(1)}
-          </Chip>
-        ))}
-      </Section>
+      {options && options.hairColors.length > 0 && (
+        <Section title="Hair Color">
+          {options.hairColors.map((c) => (
+            <Chip
+              key={c.legoColorId}
+              active={filters.hairColors.includes(c.legoColorId)}
+              onClick={() => toggleColor("hairColors", c.legoColorId)}
+              swatch={c.hex}
+            >
+              {c.name}
+            </Chip>
+          ))}
+        </Section>
+      )}
 
       <Section title="Glasses">
         <Chip active={filters.hasGlasses === true} onClick={() => tri("hasGlasses", true)}>👓 Yes</Chip>
@@ -93,13 +91,20 @@ const FilterSidebar = ({ filters, setFilters, onReset }: Props) => {
         <Chip active={filters.hasBeard === false} onClick={() => tri("hasBeard", false)}>🙂 No</Chip>
       </Section>
 
-      <Section title="Skin Tone">
-        {SKIN_OPTIONS.map((s) => (
-          <Chip key={s} active={filters.skinTones.includes(s)} onClick={() => toggleSkin(s)} swatch={SKIN_HEX[s]}>
-            {s[0].toUpperCase() + s.slice(1)}
-          </Chip>
-        ))}
-      </Section>
+      {options && options.skinTones.length > 0 && (
+        <Section title="Skin Tone">
+          {options.skinTones.map((c) => (
+            <Chip
+              key={c.legoColorId}
+              active={filters.skinTones.includes(c.legoColorId)}
+              onClick={() => toggleColor("skinTones", c.legoColorId)}
+              swatch={c.hex}
+            >
+              {c.name}
+            </Chip>
+          ))}
+        </Section>
+      )}
     </aside>
   );
 };
