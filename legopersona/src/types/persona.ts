@@ -1,17 +1,3 @@
-export type GenerationStep = 'upload' | 'loading' | 'result'
-
-export type PersonaGenerationStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed'
-
-export interface PersonaGenerationResponse {
-  generationId: string
-}
-
-export interface PersonaGenerationStatusResponse {
-  generationId: string
-  status: PersonaGenerationStatus
-  progress: number
-}
-
 export interface PersonaResult {
   generationId: string
   personaName: string
@@ -21,11 +7,11 @@ export interface PersonaResult {
 }
 
 export interface PersonaPart {
-  'PartName': string;
+  'Part Name': string;
   'Color': string;
   'Quantity': number;
-  'PartID': string;
-  'ColorCode': string;
+  'Part ID': string;
+  'Color Code': string;
 }
 
 export interface PersonaDocument {
