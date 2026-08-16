@@ -684,7 +684,11 @@ const ProfilePage = () => {
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setPersonaToView(persona)}>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setTimeout(() => setPersonaToView(persona), 0)
+                            }}
+                          >
                             <Info className="mr-2 h-4 w-4" />
                             View details
                           </DropdownMenuItem>
@@ -692,7 +696,9 @@ const ProfilePage = () => {
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             disabled={isDeletingPersona}
-                            onSelect={() => setPersonaIdToDelete(persona.id)}
+                            onSelect={() => {
+                              setTimeout(() => setPersonaIdToDelete(persona.id), 0)
+                            }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
